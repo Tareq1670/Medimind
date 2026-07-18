@@ -85,6 +85,7 @@ export function RegisterForm() {
   });
 
   const passwordValue = watch("password");
+  const roleValue = watch("role");
 
   const onSubmit = async (data: RegisterInput) => {
     setError(null);
@@ -342,7 +343,8 @@ export function RegisterForm() {
         fullWidth
         onPress={async () => {
           try {
-            await authClient.signIn.social({ provider: "google", callbackURL: `/login${redirectTo !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}` });
+            document.cookie = `medimind_pending_role=${roleValue}; path=/; max-age=300; SameSite=Lax`;
+            await authClient.signIn.social({ provider: "google", callbackURL: redirectTo });
           } catch {
             // handled by better-auth
           }

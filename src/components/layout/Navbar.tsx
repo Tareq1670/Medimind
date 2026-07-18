@@ -68,10 +68,10 @@ export function Navbar() {
           </Button>
 
           <div className="hidden sm:flex items-center gap-2">
-            <Button variant="ghost" onPress={() => router.push("/login")}>
+            <Button variant="ghost" onPress={() => router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}>
               Login
             </Button>
-            <Button variant="primary" onPress={() => router.push("/register")}>
+            <Button variant="primary" onPress={() => router.push(`/register?redirect=${encodeURIComponent(window.location.pathname)}`)}>
               Register
             </Button>
           </div>
@@ -106,7 +106,7 @@ export function Navbar() {
               variant="ghost"
               fullWidth
               onPress={() => {
-                router.push("/login");
+                router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
                 setMobileOpen(false);
               }}
             >
@@ -116,7 +116,7 @@ export function Navbar() {
               variant="primary"
               fullWidth
               onPress={() => {
-                router.push("/register");
+                router.push(`/register?redirect=${encodeURIComponent(window.location.pathname)}`);
                 setMobileOpen(false);
               }}
             >

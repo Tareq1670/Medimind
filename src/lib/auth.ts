@@ -16,12 +16,20 @@ const secret = process.env.BETTER_AUTH_SECRET;
 export const auth = betterAuth({
   database: databaseConfig,
   baseURL,
+  trustedOrigins: [baseURL],
   ...(secret ? { secret } : {}),
 
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
     autoSignIn: false,
+  },
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
   },
 
   user: {
@@ -40,7 +48,18 @@ export const auth = betterAuth({
       create: {
         before: async (user, ctx) => {
           const validRoles = ["user", "doctor", "admin"];
-          const role = ctx?.body?.role;
+          let role = ctx?.body?.role;
+          if (!validRoles.includes(role)) {
+            try {
+              const cookie = ctx?.request?.headers?.get("cookie");
+              if (cookie) {
+                const match = cookie.match(/medimind_pending_role=([^;]+)/);
+                if (match) role = match[1];
+              }
+            } catch {
+              /* cookie read failed — fall through to default */
+            }
+          }
           return {
             data: {
               ...user,
