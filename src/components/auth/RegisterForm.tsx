@@ -5,6 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Eye,
   EyeOff,
@@ -16,7 +17,10 @@ import {
   Mail,
   Lock,
   X,
+  Camera,
+  Trash2,
 } from "lucide-react";
+import { imageUploader } from "@/lib/imageUploader";
 import {
   TextField,
   Input,
@@ -59,6 +63,7 @@ const renderError = (msg: string | undefined) =>
 export function RegisterForm() {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -231,6 +236,75 @@ export function RegisterForm() {
                   ))}
                 </div>
                 {renderError(fieldState.error?.message)}
+              </div>
+            )}
+          />
+        </div>
+
+        {/* Avatar Upload */}
+        <div className="space-y-2">
+          <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Profile Photo</Label>
+          <Controller
+            name="image"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-center gap-4">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                  {field.value ? (
+                    <Image src={field.value} alt="Avatar preview" fill unoptimized className="object-cover" />
+                  ) : (
+                    <User className="h-full w-full p-3 text-slate-400" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <label className="relative cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif"
+                        disabled={uploading}
+                        className="absolute inset-0 cursor-pointer opacity-0"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error("Image must be under 5MB");
+                            return;
+                          }
+                          setUploading(true);
+                          try {
+                            const data = await imageUploader(file);
+                            field.onChange(data.url);
+                            toast.success("Photo uploaded");
+                          } catch {
+                            toast.error("Failed to upload image");
+                          } finally {
+                            setUploading(false);
+                          }
+                        }}
+                      />
+                      <span className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                        {uploading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Camera className="h-3.5 w-3.5" />
+                        )}
+                        {uploading ? "Uploading…" : "Upload Photo"}
+                      </span>
+                    </label>
+                    {field.value && (
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("")}
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-slate-500 transition-all hover:bg-slate-100 hover:text-red-500 dark:hover:bg-slate-800 dark:hover:text-red-400"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">Supported: JPG, PNG, GIF. Max 5MB.</p>
+                </div>
               </div>
             )}
           />
