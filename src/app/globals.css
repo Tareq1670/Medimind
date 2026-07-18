@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #2563EB;
+  --color-secondary: #14B8A6;
+  --color-accent: #7C3AED;
+  --color-neutral: #64748B;
+
+  --radius-card: 18px;
+  --radius-button: 14px;
+
+  --shadow-lg-tinted: 0 12px 24px -8px rgba(37, 99, 235, 0.15),
+    0 6px 12px -6px rgba(37, 99, 235, 0.08);
+
+  --shadow-lg-tinted-dark: 0 12px 24px -8px rgba(0, 0, 0, 0.45),
+    0 6px 12px -6px rgba(0, 0, 0, 0.3);
+
+  --color-bg-app: var(--color-bg-app);
+  --color-bg-card: var(--color-bg-card);
+  --color-border-subtle: var(--color-border-subtle);
+  --shadow-active: var(--shadow-active);
+
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-poppins);
+}
+
+:root {
+  --color-bg-app: #F4F7FB;
+  --color-bg-card: #FFFFFF;
+  --color-border-subtle: #DCE5F0;
+  --shadow-active: var(--shadow-lg-tinted);
+}
+
+.dark {
+  --color-bg-app: #0B1120;
+  --color-bg-card: #111827;
+  --color-border-subtle: #243244;
+  --shadow-active: var(--shadow-lg-tinted-dark);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body,
+input,
+textarea,
+button,
+select {
+  font-family: var(--font-inter), sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-heading {
+  font-family: var(--font-poppins), sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+body {
+  background-color: var(--color-bg-app);
+  color: #334155;
+}
+
+.dark body {
+  background-color: var(--color-bg-app);
+  color: #E5E7EB;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+body,
+main,
+header,
+nav,
+footer,
+aside,
+section,
+article,
+div.card,
+.card-standard,
+.transition-layout {
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+@utility card-standard {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-active);
+}
+
+@utility card-medicine {
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+@utility card-doctor {
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+@utility card-symptom {
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+}
