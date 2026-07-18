@@ -9,7 +9,7 @@
   --color-accent: #7C3AED;
   --color-neutral: #64748B;
 
-  --radius-card: 18px;
+  --radius-card: 20px;
   --radius-button: 14px;
 
   --shadow-lg-tinted: 0 12px 24px -8px rgba(37, 99, 235, 0.15),
@@ -28,17 +28,19 @@
 }
 
 :root {
-  --color-bg-app: #F4F7FB;
-  --color-bg-card: #FFFFFF;
-  --color-border-subtle: #DCE5F0;
+  --color-bg-app: #F1F5F9;
+  --color-bg-card: rgba(255, 255, 255, 0.7);
+  --color-border-subtle: rgba(226, 232, 240, 0.8);
   --shadow-active: var(--shadow-lg-tinted);
+  --bg-radial: radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.03) 0px, transparent 50%);
 }
 
 .dark {
-  --color-bg-app: #0B1120;
-  --color-bg-card: #111827;
-  --color-border-subtle: #243244;
+  --color-bg-app: #0B0F19;
+  --color-bg-card: rgba(17, 24, 39, 0.6);
+  --color-border-subtle: rgba(51, 65, 85, 0.5);
   --shadow-active: var(--shadow-lg-tinted-dark);
+  --bg-radial: radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.07) 0px, transparent 50%);
 }
 
 * {
@@ -72,11 +74,15 @@ h6,
 
 body {
   background-color: var(--color-bg-app);
+  background-image: var(--bg-radial);
+  background-attachment: fixed;
   color: #334155;
 }
 
 .dark body {
   background-color: var(--color-bg-app);
+  background-image: var(--bg-radial);
+  background-attachment: fixed;
   color: #E5E7EB;
 }
 
@@ -104,7 +110,7 @@ div.card,
   transition-property: color, background-color, border-color,
     text-decoration-color, fill, stroke, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+  transition-duration: 250ms;
 }
 
 @utility card-standard {
@@ -112,6 +118,7 @@ div.card,
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-active);
+  backdrop-filter: blur(16px) saturate(120%);
 }
 
 @utility card-medicine {
