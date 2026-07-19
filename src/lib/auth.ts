@@ -11,13 +11,19 @@ const databaseConfig = mongoUri
   : undefined;
 
 const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+
 const secret = process.env.BETTER_AUTH_SECRET;
+if (!secret) {
+  throw new Error(
+    "BETTER_AUTH_SECRET environment variable is required"
+  );
+}
 
 export const auth = betterAuth({
   database: databaseConfig,
   baseURL,
   trustedOrigins: [baseURL],
-  ...(secret ? { secret } : {}),
+  secret,
 
   emailAndPassword: {
     enabled: true,
@@ -40,6 +46,16 @@ export const auth = betterAuth({
         defaultValue: "user",
         input: true,
       },
+      dob: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      bloodGroup: {
+        type: "string",
+        required: false,
+        input: true,
+      },
     },
   },
 
@@ -47,14 +63,18 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user, ctx) => {
-          const validRoles = ["user", "doctor", "admin"];
+          const selfAssignableRoles = ["user"];
           let role = ctx?.body?.role;
-          if (!validRoles.includes(role)) {
+
+          if (!selfAssignableRoles.includes(role)) {
             try {
               const cookie = ctx?.request?.headers?.get("cookie");
               if (cookie) {
                 const match = cookie.match(/medimind_pending_role=([^;]+)/);
-                if (match) role = match[1];
+                const cookieRole: string = match ? match[1] : "";
+                if (selfAssignableRoles.includes(cookieRole)) {
+                  role = cookieRole;
+                }
               }
             } catch {
               /* cookie read failed — fall through to default */
@@ -63,7 +83,7 @@ export const auth = betterAuth({
           return {
             data: {
               ...user,
-              role: validRoles.includes(role) ? role : "user",
+              role: selfAssignableRoles.includes(role) ? role : "user",
             },
           };
         },

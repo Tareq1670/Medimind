@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Menu, X, Stethoscope } from "lucide-react";
+import toast from "react-hot-toast";
+import { Sun, Moon, Menu, X, Stethoscope, LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "@heroui/react";
 import { cn } from "@/lib/utils";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { authClient } from "@/lib/auth-client";
 
 const navLinks = [
   { href: "/medicines", label: "Medicines" },
@@ -16,13 +19,30 @@ const navLinks = [
 
 export function Navbar() {
   const router = useRouter();
+  const { user, isAuthenticated, invalidateSession } = useAuthSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const { setTheme, resolvedTheme } = useTheme();
 
   useEffect(() => setMounted(true), []);
 
   const isDark = resolvedTheme === "dark";
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await authClient.signOut();
+      await invalidateSession();
+      toast.success("Signed out successfully.");
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast.error("Failed to sign out.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <header
@@ -68,12 +88,35 @@ export function Navbar() {
           </Button>
 
           <div className="hidden sm:flex items-center gap-2">
-            <Button variant="ghost" onPress={() => router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}>
-              Login
-            </Button>
-            <Button variant="primary" onPress={() => router.push(`/register?redirect=${encodeURIComponent(window.location.pathname)}`)}>
-              Register
-            </Button>
+            {isAuthenticated && user ? (
+              <>
+                <Button variant="ghost" onPress={() => router.push("/dashboard")}>
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="hidden lg:inline">Dashboard</span>
+                </Button>
+                <Button variant="ghost" onPress={() => router.push("/profile")}>
+                  <User className="h-4 w-4" />
+                  <span className="hidden lg:inline max-w-[100px] truncate">{user.name}</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  isDisabled={signingOut}
+                  onPress={handleSignOut}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden lg:inline">Sign Out</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onPress={() => router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)}>
+                  Login
+                </Button>
+                <Button variant="primary" onPress={() => router.push(`/register?redirect=${encodeURIComponent(window.location.pathname)}`)}>
+                  Register
+                </Button>
+              </>
+            )}
           </div>
 
           <Button
@@ -102,26 +145,67 @@ export function Navbar() {
               </Link>
             ))}
             <hr className="my-2 border-border-subtle" />
-            <Button
-              variant="ghost"
-              fullWidth
-              onPress={() => {
-                router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-                setMobileOpen(false);
-              }}
-            >
-              Login
-            </Button>
-            <Button
-              variant="primary"
-              fullWidth
-              onPress={() => {
-                router.push(`/register?redirect=${encodeURIComponent(window.location.pathname)}`);
-                setMobileOpen(false);
-              }}
-            >
-              Register
-            </Button>
+            {isAuthenticated && user ? (
+              <>
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  onPress={() => {
+                    router.push("/dashboard");
+                    setMobileOpen(false);
+                  }}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  onPress={() => {
+                    router.push("/profile");
+                    setMobileOpen(false);
+                  }}
+                >
+                  <User className="h-4 w-4" />
+                  {user.name ?? "Profile"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  isDisabled={signingOut}
+                  onPress={() => {
+                    handleSignOut();
+                    setMobileOpen(false);
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  onPress={() => {
+                    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                    setMobileOpen(false);
+                  }}
+                >
+                  Login
+                </Button>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onPress={() => {
+                    router.push(`/register?redirect=${encodeURIComponent(window.location.pathname)}`);
+                    setMobileOpen(false);
+                  }}
+                >
+                  Register
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       )}

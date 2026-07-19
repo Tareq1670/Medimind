@@ -71,7 +71,23 @@ export function RegisterForm() {
 
   useEffect(() => {
     const r = new URLSearchParams(window.location.search).get("redirect");
-    if (r) setRedirectTo(r);
+    if (r) { setRedirectTo(r); return; }
+
+    try {
+      const ref = document.referrer;
+      if (ref) {
+        const refUrl = new URL(ref);
+        if (refUrl.origin === window.location.origin) {
+          const path = refUrl.pathname;
+          if (path !== "/login" && path !== "/register" && path !== "/forgot-password") {
+            setRedirectTo(path);
+            return;
+          }
+        }
+      }
+    } catch {
+      // ignore invalid referrer
+    }
   }, []);
 
   const { control, handleSubmit, watch, reset } = useForm<RegisterInput>({
@@ -165,7 +181,7 @@ export function RegisterForm() {
             control={control}
             render={({ field, fieldState }) => (
               <div className="group w-full">
-                <TextField isRequired value={field.value} onChange={field.onChange} isInvalid={fieldState.invalid} className="block !w-full">
+                <TextField isRequired value={field.value} onChange={field.onChange} onBlur={field.onBlur} isInvalid={fieldState.invalid} className="block !w-full">
                   <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Full Name</Label>
                   <div className="relative mt-1 w-full">
                     <User className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
@@ -181,11 +197,11 @@ export function RegisterForm() {
             control={control}
             render={({ field, fieldState }) => (
               <div className="group w-full">
-                <TextField isRequired type="email" value={field.value} onChange={field.onChange} isInvalid={fieldState.invalid} className="block !w-full">
+                <TextField isRequired value={field.value} onChange={field.onChange} onBlur={field.onBlur} isInvalid={fieldState.invalid} className="block !w-full">
                   <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Email Address</Label>
                   <div className="relative mt-1 w-full">
                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
-                    <Input placeholder="john@example.com" className="block !w-full h-10 rounded-xl border-slate-200 bg-slate-50/50 pl-9 text-sm transition-all focus:border-primary dark:border-slate-700/80 dark:bg-slate-800/40" />
+                    <Input type="email" placeholder="john@example.com" className="block !w-full h-10 rounded-xl border-slate-200 bg-slate-50/50 pl-9 text-sm transition-all focus:border-primary dark:border-slate-700/80 dark:bg-slate-800/40" />
                   </div>
                 </TextField>
                 {renderError(fieldState.error?.message)}
@@ -317,7 +333,7 @@ export function RegisterForm() {
             control={control}
             render={({ field, fieldState }) => (
               <div className="group w-full">
-                <TextField type={showPassword ? "text" : "password"} isRequired value={field.value} onChange={field.onChange} isInvalid={fieldState.invalid} className="block !w-full">
+                <TextField isRequired value={field.value} onChange={field.onChange} onBlur={field.onBlur} isInvalid={fieldState.invalid} className="block !w-full">
                   <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Password</Label>
                   <div className="relative mt-1 w-full">
                     <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />
@@ -336,7 +352,7 @@ export function RegisterForm() {
             control={control}
             render={({ field, fieldState }) => (
               <div className="group w-full">
-                <TextField type={showConfirmPassword ? "text" : "password"} isRequired value={field.value} onChange={field.onChange} isInvalid={fieldState.invalid} className="block !w-full">
+                <TextField isRequired value={field.value} onChange={field.onChange} onBlur={field.onBlur} isInvalid={fieldState.invalid} className="block !w-full">
                   <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">Confirm Password</Label>
                   <div className="relative mt-1 w-full">
                     <Lock className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary" />

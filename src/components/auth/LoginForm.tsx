@@ -42,8 +42,25 @@ export function LoginForm() {
   const [redirectTo, setRedirectTo] = useState("/dashboard");
 
   useEffect(() => {
-    const r = new URLSearchParams(window.location.search).get("redirect");
-    if (r) setRedirectTo(r);
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get("redirect") ?? params.get("callbackUrl");
+    if (r) { setRedirectTo(r); return; }
+
+    try {
+      const ref = document.referrer;
+      if (ref) {
+        const refUrl = new URL(ref);
+        if (refUrl.origin === window.location.origin) {
+          const path = refUrl.pathname;
+          if (path !== "/login" && path !== "/register" && path !== "/forgot-password") {
+            setRedirectTo(path);
+            return;
+          }
+        }
+      }
+    } catch {
+      // ignore invalid referrer
+    }
   }, []);
 
   const { control, handleSubmit, setValue, reset } = useForm<LoginInput>({
@@ -150,7 +167,7 @@ export function LoginForm() {
     color: string;
     bg: string;
     mode: AuthMode;
-  }[] = [
+  }[] = process.env.NODE_ENV === "development" ? [
     {
       label: "Patient",
       email: "patient@medimind.demo",
@@ -178,7 +195,7 @@ export function LoginForm() {
       bg: "bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-800/40 dark:hover:bg-amber-950/40",
       mode: "admin",
     },
-  ];
+  ] : [];
 
   const filteredDemos = DEMO_ACCOUNTS.filter((a) => a.mode === mode);
 
@@ -252,7 +269,7 @@ export function LoginForm() {
           control={control}
           render={({ field, fieldState }) => (
             <div className="group w-full space-y-1">
-              <TextField isRequired value={field.value} onChange={field.onChange} isInvalid={fieldState.invalid} className="!w-full block">
+              <TextField isRequired value={field.value} onChange={field.onChange} onBlur={field.onBlur} isInvalid={fieldState.invalid} className="!w-full block">
                 <Label className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
                   {mode === "admin" ? "Admin Email" : "Email Address"}
                 </Label>
@@ -277,7 +294,7 @@ export function LoginForm() {
           control={control}
           render={({ field, fieldState }) => (
             <div className="group w-full space-y-1">
-              <TextField isRequired value={field.value} onChange={field.onChange} isInvalid={fieldState.invalid} className="!w-full block">
+              <TextField isRequired value={field.value} onChange={field.onChange} onBlur={field.onBlur} isInvalid={fieldState.invalid} className="!w-full block">
                 <Label className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">Password</Label>
                 <div className="relative mt-1 w-full">
                   <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors duration-200 group-focus-within:text-primary dark:text-slate-500">
@@ -347,37 +364,39 @@ export function LoginForm() {
         </Button>
       </form>
 
-      {/* Demo Credentials */}
-      <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={() => setShowDemo(!showDemo)}
-          className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-        >
-          <span>{mode === "admin" ? "Admin Demo Account" : "Demo Credentials"}</span>
-          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showDemo ? "rotate-180" : ""}`} />
-        </button>
-        {showDemo && (
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {filteredDemos.map(({ label, email, password, icon: Icon, color, bg }) => (
-              <button
-                key={label}
-                type="button"
-                disabled={isPending || demoLoading !== null}
-                onClick={() => handleDemoLogin(email, password, label)}
-                className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-center transition-all ${
-                  demoLoading === label ? "scale-95 opacity-70" : ""
-                } ${bg}`}
-              >
-                <Icon className={`h-5 w-5 ${color}`} />
-                <span className={`text-xs font-semibold ${color}`}>{label}</span>
-                <span className="truncate text-[10px] text-slate-400 dark:text-slate-500">{email}</span>
-                {demoLoading === label && <Loader2 className="absolute h-4 w-4 animate-spin text-slate-400" />}
-              </button>
+      {/* Demo Credentials — DEV ONLY */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={() => setShowDemo(!showDemo)}
+            className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          >
+            <span>{mode === "admin" ? "Admin Demo Account" : "Demo Credentials"} <span className="text-amber-500">(DEV ONLY)</span></span>
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showDemo ? "rotate-180" : ""}`} />
+          </button>
+          {showDemo && (
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {filteredDemos.map(({ label, email, password, icon: Icon, color, bg }) => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={isPending || demoLoading !== null}
+                  onClick={() => handleDemoLogin(email, password, label)}
+                  className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-center transition-all ${
+                    demoLoading === label ? "scale-95 opacity-70" : ""
+                  } ${bg}`}
+                >
+                  <Icon className={`h-5 w-5 ${color}`} />
+                  <span className={`text-xs font-semibold ${color}`}>{label}</span>
+                  <span className="truncate text-[10px] text-slate-400 dark:text-slate-500">{email}</span>
+                  {demoLoading === label && <Loader2 className="absolute h-4 w-4 animate-spin text-slate-400" />}
+                </button>
             ))}
           </div>
         )}
       </div>
+      )}
 
       {/* Divider */}
       <div className="relative flex items-center py-1">
