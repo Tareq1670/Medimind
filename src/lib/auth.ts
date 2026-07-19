@@ -6,9 +6,16 @@ import { MongoClient } from "mongodb";
 const mongoUri = process.env.MONGODB_URI;
 const dbName = process.env.DB_NAME || "Medimind";
 
-const databaseConfig = mongoUri
-  ? mongodbAdapter(new MongoClient(mongoUri).db(dbName))
-  : undefined;
+const mongoClient = mongoUri ? new MongoClient(mongoUri) : null;
+const db = mongoClient?.db(dbName);
+
+const databaseConfig = db ? mongodbAdapter(db) : undefined;
+
+// Drop stale JWKS entries that were encrypted with a previous BETTER_AUTH_SECRET.
+// Safe to run on every cold start — Better Auth regenerates keys immediately.
+if (db) {
+  db.collection("jwks").deleteMany({}).catch(() => {});
+}
 
 const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 

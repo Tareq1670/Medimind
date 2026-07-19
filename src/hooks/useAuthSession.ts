@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 
 export const SESSION_KEY = ["auth", "session"] as const;
 
@@ -27,19 +27,6 @@ export function useAuthSession() {
   const invalidateSession = useCallback(() => {
     return queryClient.invalidateQueries({ queryKey: SESSION_KEY });
   }, [queryClient]);
-
-  useEffect(() => {
-    const sessionAtom = (authClient.$store as Record<string, unknown>).atoms as {
-      subscribe: (cb: () => void) => () => void;
-      get: () => { data: unknown };
-    };
-    let first = true;
-    const unsub = sessionAtom.subscribe(() => {
-      if (first) { first = false; return; }
-      invalidateSession();
-    });
-    return unsub;
-  }, [invalidateSession]);
 
   return {
     session: query.data,

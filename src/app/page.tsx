@@ -1,17 +1,34 @@
+"use client";
+
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { HeroSlider } from "@/components/landing/HeroSlider";
+import { QuickToolsGrid } from "@/components/landing/QuickToolsGrid";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { FeaturedMedicines } from "@/components/landing/FeaturedMedicines";
+import { AIEngineSpotlight } from "@/components/landing/AIEngineSpotlight";
+import { ClinicalPlatformIntelligence } from "@/components/landing/ClinicalPlatformIntelligence";
+import { DoctorRoster } from "@/components/landing/DoctorRoster";
+import { Testimonials } from "@/components/landing/Testimonials";
+import { BlogPreview } from "@/components/landing/BlogPreview";
+import { SymptomChecker } from "@/components/landing/SymptomChecker";
+import { NewsletterSignup } from "@/components/landing/NewsletterSignup";
+
 export default function Home() {
+  const { isAuthenticated, isPending } = useAuthSession();
+
   return (
-    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-        Your{" "}
-        <span className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] bg-clip-text text-transparent">
-          Health
-        </span>
-        , Intelligently Navigated
-      </h1>
-      <p className="mt-4 max-w-2xl text-lg text-[var(--color-neutral)]">
-        MediMind connects you with the right medicines, doctors, and
-        AI-powered symptom insights.
-      </p>
+    <div className="flex flex-col">
+      <HeroSlider isAuthenticated={isAuthenticated} isLoading={isPending} />
+      <QuickToolsGrid />
+      <HowItWorks />
+      <FeaturedMedicines />
+      <AIEngineSpotlight />
+      <ClinicalPlatformIntelligence />
+      <DoctorRoster />
+      <Testimonials />
+      <BlogPreview />
+      <SymptomChecker />
+      <NewsletterSignup />
     </div>
   );
 }

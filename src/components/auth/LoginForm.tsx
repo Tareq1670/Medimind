@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   Eye,
@@ -30,11 +31,13 @@ import {
 import toast from "react-hot-toast";
 import { authClient } from "@/lib/auth-client";
 import { LoginSchema, type LoginInput } from "@/lib/validation";
+import { SESSION_KEY } from "@/hooks/useAuthSession";
 
 type AuthMode = "user" | "admin";
 
 export function LoginForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -79,6 +82,7 @@ export function LoginForm() {
           onSuccess: async () => {
             setIsPending(false);
             reset();
+            await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
             toast.success(`Welcome back! Redirecting...`);
             router.push(redirectTo);
             router.refresh();
@@ -139,6 +143,7 @@ export function LoginForm() {
           onSuccess: async () => {
             setDemoLoading(null);
             reset();
+            await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
             toast.success(`Welcome, ${label}!`);
             router.push(redirectTo);
             router.refresh();
