@@ -167,7 +167,7 @@ export function LoginForm() {
     color: string;
     bg: string;
     mode: AuthMode;
-  }[] = process.env.NODE_ENV === "development" ? [
+  }[] = [
     {
       label: "Patient",
       email: "patient@medimind.demo",
@@ -195,7 +195,7 @@ export function LoginForm() {
       bg: "bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-800/40 dark:hover:bg-amber-950/40",
       mode: "admin",
     },
-  ] : [];
+  ];
 
   const filteredDemos = DEMO_ACCOUNTS.filter((a) => a.mode === mode);
 
@@ -364,8 +364,8 @@ export function LoginForm() {
         </Button>
       </form>
 
-      {/* Demo Credentials — DEV ONLY */}
-      {process.env.NODE_ENV === "development" && (
+      {/* Demo Credentials */}
+      {filteredDemos.length > 0 && (
         <div className="border-t border-slate-100 pt-4 dark:border-slate-800">
           <button
             type="button"
