@@ -1,17 +1,37 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const protectedRoutes = ["/dashboard", "/profile", "/records"];
+const protectedPrefixes = [
+  "/dashboard",
+  "/profile",
+  "/records",
+  "/health-records",
+  "/ai-assistant",
+  "/report-analysis",
+  "/patients",
+  "/schedule",
+  "/messages",
+  "/users",
+  "/reviews",
+  "/stats",
+  "/medicines/manage",
+  "/blogs/create",
+  "/admin",
+];
 
 export async function middleware(req: NextRequest) {
-  const sessionCookie = req.cookies.get("better-auth.session_token")?.value;
-  const isProtected = protectedRoutes.some((p) =>
-    req.nextUrl.pathname.startsWith(p)
-  );
+  const { pathname } = req.nextUrl;
 
-  if (isProtected && !sessionCookie) {
+  const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
+
+  if (!isProtected) {
+    return NextResponse.next();
+  }
+
+  const sessionCookie = req.cookies.get("better-auth.session_token")?.value;
+  if (!sessionCookie) {
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", req.nextUrl.pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -19,5 +39,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*", "/records/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

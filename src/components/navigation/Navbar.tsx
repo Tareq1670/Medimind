@@ -162,6 +162,7 @@ export function Navbar() {
 
   const notifRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
 
   const isDark = resolvedTheme === "dark";
@@ -194,31 +195,50 @@ export function Navbar() {
   }, [isOpen]);
 
   useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
+    const closeAllDropdowns = () => {
+      setNotifOpen(false);
+      setUserMenuOpen(false);
+      setOpenCategory(null);
     };
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+    const closeIfOutside = (e: Event) => {
+      const target = e.target as Node;
+      const isOutsideAll =
+        !navRef.current?.contains(target) &&
+        !notifRef.current?.contains(target) &&
+        !userMenuRef.current?.contains(target);
+
+      if (isOutsideAll) {
+        setNotifOpen(false);
         setOpenCategory(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
-  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenCategory(null);
+      if (e.key === "Escape") {
+        closeAllDropdowns();
+      }
     };
+
+    const handleResize = () => {
+      closeAllDropdowns();
+    };
+
+    document.addEventListener("mousedown", closeIfOutside);
+    document.addEventListener("touchstart", closeIfOutside);
+    document.addEventListener("wheel", closeIfOutside, { passive: true });
+    document.addEventListener("touchmove", closeIfOutside, { passive: true });
     document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.removeEventListener("mousedown", closeIfOutside);
+      document.removeEventListener("touchstart", closeIfOutside);
+      document.removeEventListener("wheel", closeIfOutside);
+      document.removeEventListener("touchmove", closeIfOutside);
+      document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -511,11 +531,12 @@ export function Navbar() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <Dropdown
-                    isOpen={userMenuOpen}
-                    onOpenChange={setUserMenuOpen}
-                  >
-                    <DropdownTrigger
+                  <div ref={userMenuRef}>
+                    <Dropdown
+                      isOpen={userMenuOpen}
+                      onOpenChange={setUserMenuOpen}
+                    >
+                      <DropdownTrigger
                       className={cn(
                         "rounded-xl px-2 py-1.5 transition-all duration-200",
                         userMenuOpen
@@ -601,7 +622,8 @@ export function Navbar() {
                         </div>
                       </div>
                     </DropdownPopover>
-                  </Dropdown>
+                    </Dropdown>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div

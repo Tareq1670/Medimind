@@ -70,16 +70,16 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user, ctx) => {
-          const selfAssignableRoles = ["user"];
+          const validRoles = ["user", "doctor", "admin"];
           let role = ctx?.body?.role;
 
-          if (!selfAssignableRoles.includes(role)) {
+          if (!role || !validRoles.includes(role)) {
             try {
               const cookie = ctx?.request?.headers?.get("cookie");
               if (cookie) {
                 const match = cookie.match(/medimind_pending_role=([^;]+)/);
                 const cookieRole: string = match ? match[1] : "";
-                if (selfAssignableRoles.includes(cookieRole)) {
+                if (validRoles.includes(cookieRole)) {
                   role = cookieRole;
                 }
               }
@@ -90,7 +90,7 @@ export const auth = betterAuth({
           return {
             data: {
               ...user,
-              role: selfAssignableRoles.includes(role) ? role : "user",
+              role: role && validRoles.includes(role) ? role : "user",
             },
           };
         },
