@@ -111,7 +111,7 @@ export default function SymptomCheckerPage() {
         </div>
         <h1 className="font-heading text-3xl font-bold tracking-tight text-slate-900 dark:text-white">AI Symptom Checker</h1>
         <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xl mx-auto">
-          Describe your symptoms and get an AI-powered preliminary assessment. Always consult a healthcare professional for a definitive diagnosis.
+          Describ your symptoms and get an AI-powered preliminary assessment. Always consult a healthcare professional for a definitive diagnosis.
         </p>
       </div>
 
