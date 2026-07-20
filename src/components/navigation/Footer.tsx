@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Scale,
   MailQuestion,
-} from "lucide-react";
+} from "@/lib/icon-map";
 
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
   return (

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
-import { featuredMedicines } from "@/components/landing/data";
-import type { LandingMedicine } from "@/components/landing/data";
+import { featuredMedicines } from "@/components/home/data";
+import type { LandingMedicine } from "@/components/home/data";
 
 export function useFeaturedMedicines() {
   return useQuery({

@@ -19,7 +19,7 @@ import {
   Stethoscope,
   Shield,
   ChevronDown,
-} from "lucide-react";
+} from "@/lib/icon-map";
 import {
   TextField,
   Input,

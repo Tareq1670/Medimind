@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CalendarDays, Clock, ArrowRight, BookText } from "lucide-react";
+import { CalendarDays, Clock, ArrowRight, BookText } from "@/lib/icon-map";
 import { useBlogs } from "@/hooks/useBlogs";
 
 function formatDate(dateStr: string) {

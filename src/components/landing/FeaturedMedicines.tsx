@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
-import { Star, Eye, Pill as PillIcon } from "lucide-react";
+import { Star, Eye, Pill as PillIcon } from "@/lib/icon-map";
 import { Skeleton } from "@heroui/react";
 import { useFeaturedMedicines } from "@/hooks/useFeaturedMedicines";
 

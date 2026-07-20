@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Mail, SendHorizonal, Loader2, CheckCircle2 } from "lucide-react";
+import { Mail, SendHorizonal, Loader2, CheckCircle2 } from "@/lib/icon-map";
 
 const newsletterSchema = z.object({
   email: z.email("Please enter a valid email address"),

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Tags, Sparkles } from "lucide-react";
+import { FileText, Tags, Sparkles } from "@/lib/icon-map";
 
 const engines = [
   {

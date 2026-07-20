@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Star, Quote } from "lucide-react";
+import { Star, Quote } from "@/lib/icon-map";
 import { useTestimonials } from "@/hooks/useTestimonials";
 
 function formatDate(dateStr: string) {

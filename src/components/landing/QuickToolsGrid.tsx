@@ -8,7 +8,7 @@ import {
   HeartPulse,
   ScanSearch,
   ArrowRight,
-} from "lucide-react";
+} from "@/lib/icon-map";
 
 const tools = [
   {

@@ -19,6 +19,9 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       "medimind-backend/**",
+      "check-*.js",
+      "fix-*.js",
+      "seed-*.js",
     ],
   },
 ];

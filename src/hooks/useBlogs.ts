@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
-import { latestBlogs } from "@/components/landing/data";
-import type { LandingBlog } from "@/components/landing/data";
+import { latestBlogs } from "@/components/home/data";
+import type { LandingBlog } from "@/components/home/data";
 
 interface PopulatedUser {
   _id: string;

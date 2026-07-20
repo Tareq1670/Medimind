@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
-import { testimonials } from "@/components/landing/data";
-import type { LandingTestimonial } from "@/components/landing/data";
+import { testimonials } from "@/components/home/data";
+import type { LandingTestimonial } from "@/components/home/data";
 
 interface PopulatedReviewer {
   _id: string;

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
-import { featuredDoctors } from "@/components/landing/data";
-import type { LandingDoctor } from "@/components/landing/data";
+import { featuredDoctors } from "@/components/home/data";
+import type { LandingDoctor } from "@/components/home/data";
 
 interface PaginatedEnvelope<T> {
   data: T[];

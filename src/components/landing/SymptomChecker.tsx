@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, AlertTriangle, Lightbulb, Loader2 } from "lucide-react";
+import { Send, Bot, AlertTriangle, Lightbulb, Loader2 } from "@/lib/icon-map";
 
 const sampleResponse = {
   caution:

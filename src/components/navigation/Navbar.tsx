@@ -21,17 +21,17 @@ import {
   Pill,
   ChevronDown,
   BrainCircuit,
-  ScanSearch,
   BookOpen,
-  UserCircle,
-  Star,
+  MoreHorizontal,
+  Search,
+  ScanSearch,
   Users,
   CalendarDays,
-  MessageCircle,
   BarChart3,
-  Settings,
+  Star,
+  UserCircle,
   Shield,
-} from "lucide-react";
+} from "@/lib/icon-map";
 import { AnimatePresence, motion } from "framer-motion";
 import { Skeleton, Avatar, AvatarFallback, Dropdown, DropdownTrigger, DropdownPopover } from "@heroui/react";
 import { cn } from "@/lib/utils";
@@ -53,73 +53,65 @@ interface NavCategory {
   roles: string[];
 }
 
-const navCategories: NavCategory[] = [
+const publicCategories: NavCategory[] = [
   {
-    label: "AI & Diagnostics",
-    icon: BrainCircuit,
-    roles: ["user", "doctor", "admin"],
-    items: [
-      { href: "/ai-assistant", label: "AI Assistant", icon: BrainCircuit, roles: ["user", "doctor", "admin"] },
-      { href: "/report-analysis", label: "Report Analysis", icon: ScanSearch, roles: ["user", "doctor", "admin"] },
-    ],
-  },
-  {
-    label: "Pharmacy",
+    label: "Medicines",
     icon: Pill,
+    href: "/medicines",
     roles: ["user", "doctor", "admin"],
-    items: [
-      { href: "/medicines", label: "Browse Medicines", icon: Pill, roles: ["user", "doctor", "admin"] },
-      { href: "/medicines/manage", label: "Manage Medicines", icon: Pill, roles: ["doctor", "admin"] },
-    ],
   },
   {
-    label: "Care Team",
+    label: "Doctors",
     icon: Stethoscope,
+    href: "/doctors",
     roles: ["user", "doctor", "admin"],
-    items: [
-      { href: "/doctors", label: "Consult Doctors", icon: Stethoscope, roles: ["user", "doctor", "admin"] },
-      { href: "/patients", label: "My Patients", icon: Users, roles: ["doctor", "admin"] },
-    ],
   },
   {
-    label: "Resources",
+    label: "Conditions",
+    icon: HeartPulse,
+    href: "/conditions",
+    roles: ["user", "doctor", "admin"],
+  },
+  {
+    label: "Health Articles",
     icon: BookOpen,
+    href: "/blogs",
     roles: ["user", "doctor", "admin"],
-    items: [
-      { href: "/blogs", label: "Health Articles", icon: BookOpen, roles: ["user", "doctor", "admin"] },
-      { href: "/blogs/create", label: "Write Article", icon: BookOpen, roles: ["doctor", "admin"] },
-    ],
   },
   {
-    label: "Admin",
-    icon: Shield,
-    roles: ["admin"],
-    items: [
-      { href: "/users", label: "Users", icon: Users, roles: ["admin"] },
-      { href: "/reviews", label: "Reviews", icon: Star, roles: ["admin"] },
-      { href: "/stats", label: "Analytics", icon: BarChart3, roles: ["admin"] },
-    ],
+    label: "About",
+    icon: FileText,
+    href: "/about",
+    roles: ["user", "doctor", "admin"],
   },
 ];
 
-const baseUserMenuItems = [
+const userMenuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/profile", label: "Profile", icon: UserCircle },
-  { href: "/health-records", label: "Health Records", icon: HeartPulse },
-  { href: "/report-analysis/history", label: "My Reports", icon: FileText },
 ];
 
-const doctorMenuItems = [
-  { href: "/schedule", label: "My Schedule", icon: CalendarDays },
-  { href: "/messages", label: "Patient Inbox", icon: MessageCircle },
-];
-
-const adminMenuItems = [
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/reviews/manage", label: "Review Moderation", icon: Star },
-  { href: "/stats", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/settings", label: "Platform Settings", icon: Settings },
-];
+const roleLinks: Record<string, { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[]> = {
+  user: [
+    { href: "/ai-assistant", label: "AI Assistant", icon: BrainCircuit },
+    { href: "/report-analysis", label: "Report Analysis", icon: ScanSearch },
+    { href: "/health-records", label: "Health Records", icon: HeartPulse },
+    { href: "/symptom-checker", label: "Symptom Checker", icon: Search },
+  ],
+  doctor: [
+    { href: "/ai-assistant", label: "AI Assistant", icon: BrainCircuit },
+    { href: "/report-analysis", label: "Report Analysis", icon: ScanSearch },
+    { href: "/patients", label: "My Patients", icon: Users },
+    { href: "/schedule", label: "Schedule", icon: CalendarDays },
+  ],
+  admin: [
+    { href: "/ai-assistant", label: "AI Assistant", icon: BrainCircuit },
+    { href: "/report-analysis", label: "Report Analysis", icon: ScanSearch },
+    { href: "/users", label: "Users", icon: Users },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/reviews", label: "Reviews", icon: Star },
+  ],
+};
 
 const notifications = [
   {
@@ -164,23 +156,25 @@ export function Navbar() {
   const navRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
+  const userMenuOpenRef = useRef(userMenuOpen);
+  userMenuOpenRef.current = userMenuOpen;
 
   const isDark = resolvedTheme === "dark";
   const role = (user?.role as "user" | "doctor" | "admin") ?? "user";
 
-  const visibleCategories = navCategories
-    .filter((cat) => (cat.roles as string[]).includes(role))
-    .map((cat) => ({
-      ...cat,
-      items: cat.items?.filter((item) => (item.roles as string[]).includes(role)),
-    }));
+  const visibleCategories = publicCategories;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20);
+      if (userMenuOpenRef.current) {
+        setUserMenuOpen(false);
+      }
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -203,12 +197,15 @@ export function Navbar() {
 
     const closeIfOutside = (e: Event) => {
       const target = e.target as Node;
-      const isOutsideAll =
-        !navRef.current?.contains(target) &&
-        !notifRef.current?.contains(target) &&
-        !userMenuRef.current?.contains(target);
+      const isOutsideUserMenu = !userMenuRef.current?.contains(target);
+      const isOutsideNav = !navRef.current?.contains(target);
+      const isOutsideNotif = !notifRef.current?.contains(target);
 
-      if (isOutsideAll) {
+      if (isOutsideUserMenu && userMenuOpenRef.current) {
+        setUserMenuOpen(false);
+      }
+
+      if (isOutsideNav && isOutsideNotif && isOutsideUserMenu) {
         setNotifOpen(false);
         setOpenCategory(null);
       }
@@ -304,29 +301,19 @@ export function Navbar() {
     admin: Shield,
   };
 
-  const userMenuItems = [...baseUserMenuItems];
-
-  if (role === "doctor" || role === "admin") {
-    userMenuItems.push(...doctorMenuItems);
-  }
-
-  if (role === "admin") {
-    userMenuItems.push(...adminMenuItems);
-  }
-
   const RoleBadgeIcon = roleBadgeIcons[role] ?? UserCircle;
 
   return (
     <>
       <header
         className={cn(
-        "fixed top-0 z-50 w-full transition-all duration-300",
+        "fixed top-0  z-50 w-full transition-all duration-500",
         scrolled
-          ? "backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm"
+          ? "bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 shadow-lg shadow-slate-900/5 dark:shadow-black/20"
           : "bg-transparent border-transparent"
       )}
     >
-      <div className="flex items-center justify-between w-full h-20 px-4 mx-auto max-w-7xl">
+      <div className="flex items-center justify-between w-full h-20 px-4 sm:px-6 mx-auto max-w-7xl">
         <Link
           href="/"
           className="flex items-center gap-2 text-xl font-bold tracking-tight shrink-0"
@@ -425,6 +412,68 @@ export function Navbar() {
               </div>
             ),
           )}
+          {isAuthenticated && (
+            <>
+              <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenCategory(openCategory === "More" ? null : "More")
+                  }
+                  className={cn(
+                    "relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200",
+                    openCategory === "More" && "bg-slate-100 dark:bg-slate-800",
+                    "text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50",
+                  )}
+                  aria-expanded={openCategory === "More"}
+                  aria-haspopup="true"
+                >
+                  <MoreHorizontal className="h-4 w-4 shrink-0" />
+                  More
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform duration-200",
+                      openCategory === "More" && "rotate-180",
+                    )}
+                  />
+                </button>
+                <AnimatePresence>
+                  {openCategory === "More" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="absolute right-0 top-full mt-1 w-56 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl overflow-hidden origin-top-right"
+                    >
+                      <div className="py-1.5">
+                        <p className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          Quick Access
+                        </p>
+                        {roleLinks[role]?.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setOpenCategory(null)}
+                            className={cn(
+                              "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150",
+                              isActive(item.href)
+                                ? "text-primary bg-primary/5 dark:bg-primary/10 font-medium"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
+                            )}
+                          >
+                            <item.icon className="h-4 w-4 shrink-0 text-slate-400" />
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </>
+          )}
         </nav>
 
         <div className="flex items-center gap-x-4">
@@ -453,61 +502,63 @@ export function Navbar() {
             </div>
           </button>
 
-          {/* Notification Bell */}
-          <div className="relative" ref={notifRef}>
-            <button
-              type="button"
-              onClick={() => setNotifOpen((prev) => !prev)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
-              aria-label="Notifications"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
-                {notifications.length}
-              </span>
-            </button>
+          {/* Notification Bell — auth-gated */}
+          {isAuthenticated && (
+            <div className="relative" ref={notifRef}>
+              <button
+                type="button"
+                onClick={() => setNotifOpen((prev) => !prev)}
+                className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200"
+                aria-label="Notifications"
+              >
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
+                  {notifications.length}
+                </span>
+              </button>
 
-            {/* Notification Dropdown */}
-            <div
-              className={cn(
-                "absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[22rem] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl overflow-hidden origin-top-right transition-all duration-200",
-                notifOpen
-                  ? "opacity-100 scale-100 visible"
-                  : "opacity-0 scale-95 invisible pointer-events-none"
-              )}
-            >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</p>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">{notifications.length} new</span>
-              </div>
-              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
-                {notifications.map((n) => (
+              {/* Notification Dropdown */}
+              <div
+                className={cn(
+                  "absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[22rem] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl overflow-hidden origin-top-right transition-all duration-200",
+                  notifOpen
+                    ? "opacity-100 scale-100 visible"
+                    : "opacity-0 scale-95 invisible pointer-events-none"
+                )}
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</p>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">{notifications.length} new</span>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+                  {notifications.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      className="flex w-full gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors duration-150"
+                    >
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 dark:bg-primary/20">
+                        <n.icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{n.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{n.description}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{n.time}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2.5">
                   <button
-                    key={n.id}
                     type="button"
-                    className="flex w-full gap-3 px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors duration-150"
+                    className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                   >
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 dark:bg-primary/20">
-                      <n.icon className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{n.title}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{n.description}</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{n.time}</p>
-                    </div>
+                    View all notifications
                   </button>
-                ))}
-              </div>
-              <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2.5">
-                <button
-                  type="button"
-                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  View all notifications
-                </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Desktop Auth Section */}
           <div className="hidden xl:flex items-center gap-1">
@@ -762,6 +813,33 @@ export function Navbar() {
                     ))}
                   </div>
                 ),
+              )}
+
+              {isAuthenticated && (
+                <>
+                  <div className="pt-2 pb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    <MoreHorizontal className="inline h-3 w-3 mr-1 -mt-0.5" />
+                    Quick Access
+                  </div>
+                  <div className="ml-2 border-l-2 border-slate-200 dark:border-slate-700 pl-3 space-y-0.5">
+                    {roleLinks[role]?.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all duration-200",
+                          isActive(item.href)
+                            ? "text-primary bg-primary/10"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50",
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0 text-slate-400" />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </>
               )}
 
               <hr className="my-2 border-slate-200 dark:border-slate-800" />

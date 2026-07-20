@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { UserCheck, Bot, Stethoscope, FileText } from "lucide-react";
+import { UserCheck, Bot, Stethoscope, FileText } from "@/lib/icon-map";
 
 const steps = [
   {

@@ -19,7 +19,7 @@ import {
   X,
   Camera,
   Trash2,
-} from "lucide-react";
+} from "@/lib/icon-map";
 import { imageUploader } from "@/lib/imageUploader";
 import {
   TextField,

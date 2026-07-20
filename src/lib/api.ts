@@ -10,10 +10,27 @@ export class ApiError extends Error {
   }
 }
 
-export async function get<T>(endpoint: string): Promise<T> {
+export function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (typeof document !== "undefined") {
+    const match = document.cookie.match(/(?:^|;\s*)better-auth\.session_token=([^;]*)/);
+    if (match) {
+      headers["Authorization"] = `Bearer ${match[1]}`;
+    }
+  }
+  return headers;
+}
+
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     cache: "no-store",
-    headers: { "Content-Type": "application/json" },
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
   });
 
   if (!res.ok) {
@@ -27,4 +44,33 @@ export async function get<T>(endpoint: string): Promise<T> {
   }
 
   return json.data as T;
+}
+
+export async function get<T>(endpoint: string): Promise<T> {
+  return request<T>(endpoint, { method: "GET" });
+}
+
+export async function post<T>(endpoint: string, body?: unknown): Promise<T> {
+  return request<T>(endpoint, {
+    method: "POST",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function put<T>(endpoint: string, body?: unknown): Promise<T> {
+  return request<T>(endpoint, {
+    method: "PUT",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function patch<T>(endpoint: string, body?: unknown): Promise<T> {
+  return request<T>(endpoint, {
+    method: "PATCH",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function deleteRequest<T>(endpoint: string): Promise<T> {
+  return request<T>(endpoint, { method: "DELETE" });
 }
