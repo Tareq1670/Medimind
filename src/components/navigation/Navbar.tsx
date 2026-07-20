@@ -37,6 +37,7 @@ import { Skeleton, Avatar, AvatarFallback, Dropdown, DropdownTrigger, DropdownPo
 import { cn } from "@/lib/utils";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { authClient } from "@/lib/auth-client";
+import { clearTokenCache } from "@/lib/api";
 
 interface NavItem {
   href: string;
@@ -265,6 +266,7 @@ export function Navbar() {
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
     try {
+      clearTokenCache();
       await authClient.signOut();
       queryClient.clear();
       await invalidateSession();

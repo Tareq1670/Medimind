@@ -18,7 +18,7 @@ export const MEDICINE_SORT_OPTIONS = [
   { label: "Name (Z-A)", value: "name_desc" },
   { label: "Price (Low to High)", value: "price_asc" },
   { label: "Price (High to Low)", value: "price_desc" },
-  { label: "Rating (High to Low)", value: "rating_desc" },
+  { label: "Stock (Low to High)", value: "stockQuantity_asc" },
   { label: "Newest First", value: "createdAt_desc" },
 ] as const;
 

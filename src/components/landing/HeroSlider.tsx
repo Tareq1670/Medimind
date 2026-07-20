@@ -5,11 +5,17 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, EffectFade } from "swiper/modules";
-import { ArrowRight, ShieldCheck } from "@/lib/icon-map";
+import { ArrowRight, ShieldCheck, CheckCircle, FileText, BrainCircuit } from "@/lib/icon-map";
 
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
+
+const floatingCards = [
+  { icon: CheckCircle, text: "Symptom Analyzed", color: "from-[#14B8A6] to-[#0D9488]", delay: 0 },
+  { icon: FileText, text: "Report Scanned", color: "from-[#2563EB] to-[#1D4ED8]", delay: 0.4 },
+  { icon: BrainCircuit, text: "AI Processing", color: "from-[#8B5CF6] to-[#7C3AED]", delay: 0.8 },
+];
 
 interface HeroSliderProps {
   isAuthenticated: boolean;
@@ -211,6 +217,24 @@ export function HeroSlider({ isAuthenticated, isLoading }: HeroSliderProps) {
                   <div className="relative w-4/5 sm:w-2/3 md:w-full max-h-[250px] sm:max-h-[320px] lg:max-h-[450px] flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-[var(--color-secondary)]/5 dark:bg-[var(--color-secondary)]/10 animate-pulse" />
                     <slide.Graphic />
+                    {floatingCards.map((card, i) => (
+                      <motion.div
+                        key={card.text}
+                        initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ delay: 1 + card.delay, duration: 0.5, ease: "easeOut" }}
+                        className={`absolute ${i === 0 ? "-left-2 top-8 sm:left-0 sm:top-12" : i === 1 ? "-right-2 top-1/2 -translate-y-1/2 sm:right-0" : "-left-4 bottom-12 sm:left-2 sm:bottom-16"} z-10`}
+                      >
+                        <motion.div
+                          animate={{ y: [0, -6, 0] }}
+                          transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: "easeInOut", delay: card.delay }}
+                          className={`flex items-center gap-1.5 rounded-full bg-gradient-to-r ${card.color} px-3 py-1.5 shadow-lg`}
+                        >
+                          <card.icon className="h-3 w-3 text-white" />
+                          <span className="text-[10px] font-semibold text-white whitespace-nowrap">{card.text}</span>
+                        </motion.div>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -219,6 +243,26 @@ export function HeroSlider({ isAuthenticated, isLoading }: HeroSliderProps) {
         ))}
       </Swiper>
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[var(--color-bg-app)] to-transparent z-10" />
+
+      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-8 mb-4">
+        <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 rounded-[var(--radius-card)] border border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-6 py-4 shadow-lg">
+          {[
+            { value: "10k+", label: "Active Users" },
+            { value: "500+", label: "Medicines" },
+            { value: "24/7", label: "AI Support" },
+            { value: "95%", label: "Accuracy" },
+          ].map((stat) => (
+            <div key={stat.label} className="flex items-center gap-2">
+              <span className="font-heading text-lg font-bold text-[var(--color-primary)] dark:text-[var(--color-secondary)]">
+                {stat.value}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {stat.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

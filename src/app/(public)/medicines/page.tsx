@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useMedicines } from "@/hooks/useMedicines";
-import { Pagination, StarRating, EmptyState } from "@/components/shared";
+import { useURLFilters } from "@/hooks/useURLFilters";
+import { Pagination, StarRating, EmptyState, ActiveFilters } from "@/components/shared";
 import { Search, Pill } from "@/lib/icon-map";
 import { cn } from "@/lib/utils";
 import { MEDICINE_CATEGORIES, MEDICINE_SORT_OPTIONS, MEDICINES_PER_PAGE } from "@/constants";
@@ -22,6 +24,14 @@ const PRICE_RANGES = [
   { label: "Over $30", min: 30, max: undefined },
 ];
 
+const filters = {
+  search: { debounce: 300 },
+  category: {},
+  priceRange: {},
+  prescription: {},
+  sort: {},
+} as const;
+
 function MedicineCard({ medicine }: { medicine: Medicine }) {
   return (
     <Link
@@ -29,10 +39,11 @@ function MedicineCard({ medicine }: { medicine: Medicine }) {
       className="card-standard overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
     >
       <div className="relative h-48 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center overflow-hidden">
-        <img
+        <Image
           src={medicine.image || "https://i.ibb.co/n610Bc4/paracetamol.jpg"}
           alt={medicine.name}
-          className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+          fill
+          className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
         />
         {medicine.isPrescriptionRequired && (
           <span className="absolute top-3 right-3 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
@@ -82,29 +93,38 @@ function MedicineCardSkeleton() {
 }
 
 export default function MedicinesPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [priceRange, setPriceRange] = useState(0);
-  const [prescription, setPrescription] = useState<string>("");
-  const [sort, setSort] = useState("createdAt_desc");
+  const { filters: f, page, set, setPage, resetAll, activeFilterCount } = useURLFilters(filters);
+  const [searchInput, setSearchInput] = useState(f.search);
   const [showFilters, setShowFilters] = useState(false);
 
-  const filter = useMemo(() => {
-    const [sortBy, sortOrder] = sort.split("_") as [string, "asc" | "desc"];
-    return {
-      search: debouncedSearch || undefined,
-      category: category || undefined,
-      minPrice: PRICE_RANGES[priceRange]?.min,
-      maxPrice: PRICE_RANGES[priceRange]?.max,
-      isPrescriptionRequired: prescription === "true" ? true : prescription === "false" ? false : undefined,
-      sortBy: sortBy as "name" | "price" | "rating" | "createdAt",
-      sortOrder,
-      page,
-      limit: MEDICINES_PER_PAGE,
-    };
-  }, [debouncedSearch, category, priceRange, prescription, sort, page]);
+  useEffect(() => { setSearchInput(f.search); }, [f.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== f.search) set("search", searchInput || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, f.search, set]);
+
+  const search = f.search;
+  const category = f.category;
+  const priceRange = Number(f.priceRange) || 0;
+  const prescription = f.prescription;
+  const sort = f.sort || "createdAt_desc";
+
+  const [sortBy, sortOrder] = sort.split("_") as [string, "asc" | "desc"];
+
+  const filter = {
+    search: search || undefined,
+    category: category || undefined,
+    minPrice: PRICE_RANGES[priceRange]?.min,
+    maxPrice: PRICE_RANGES[priceRange]?.max,
+    isPrescriptionRequired: prescription === "true" ? true : prescription === "false" ? false : undefined,
+    sortBy: sortBy as "name" | "price" | "createdAt" | "stockQuantity",
+    sortOrder,
+    page,
+    limit: MEDICINES_PER_PAGE,
+  };
 
   const { data, isLoading, isError } = useMedicines(filter);
   const medicines = data?.data || [];
@@ -141,9 +161,7 @@ export default function MedicinesPage() {
           {showFilters && (
             <div className="md:hidden flex items-center justify-between mb-4">
               <h2 className="font-heading text-lg font-semibold">Filters</h2>
-              <button onClick={() => setShowFilters(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                X
-              </button>
+              <button onClick={() => setShowFilters(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">X</button>
             </div>
           )}
 
@@ -153,22 +171,20 @@ export default function MedicinesPage() {
               <input
                 type="text"
                 placeholder="Search medicines..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setDebouncedSearch(e.target.value); setPage(1); }}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-              Category
-            </h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Category</h3>
             <div className="space-y-1">
               {FILTER_CATEGORIES.map((cat) => (
                 <button
                   key={cat.value}
-                  onClick={() => { setCategory(cat.value); setPage(1); }}
+                  onClick={() => set("category", cat.value || undefined)}
                   className={cn(
                     "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                     category === cat.value
@@ -183,14 +199,12 @@ export default function MedicinesPage() {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-              Price Range
-            </h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Price Range</h3>
             <div className="space-y-1">
               {PRICE_RANGES.map((range, i) => (
                 <button
                   key={i}
-                  onClick={() => { setPriceRange(i); setPage(1); }}
+                  onClick={() => set("priceRange", i === 0 ? undefined : String(i))}
                   className={cn(
                     "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                     priceRange === i
@@ -205,9 +219,7 @@ export default function MedicinesPage() {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-              Prescription
-            </h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Prescription</h3>
             <div className="space-y-1">
               {[
                 { value: "", label: "All" },
@@ -216,7 +228,7 @@ export default function MedicinesPage() {
               ].map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => { setPrescription(opt.value); setPage(1); }}
+                  onClick={() => set("prescription", opt.value || undefined)}
                   className={cn(
                     "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                     prescription === opt.value
@@ -230,8 +242,7 @@ export default function MedicinesPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => { setCategory(""); setPriceRange(0); setPrescription(""); setSearch(""); setDebouncedSearch(""); setPage(1); }}
+          <button onClick={resetAll}
             className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Clear Filters
@@ -239,20 +250,28 @@ export default function MedicinesPage() {
         </aside>
 
         {showFilters && (
-          <div
-            className="fixed inset-0 bg-black/30 z-40 md:hidden"
-            onClick={() => setShowFilters(false)}
-          />
+          <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setShowFilters(false)} />
         )}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6">
+          <ActiveFilters
+            totalCount={activeFilterCount}
+            onClearAll={resetAll}
+            chips={[
+              ...(search ? [{ key: "search", label: "Search", value: search, onRemove: () => { set("search", undefined); setSearchInput(""); } }] : []),
+              ...(category ? [{ key: "category", label: "Category", value: category, onRemove: () => set("category", undefined) }] : []),
+              ...(prescription ? [{ key: "prescription", label: "Prescription", value: prescription === "true" ? "Rx only" : "OTC", onRemove: () => set("prescription", undefined) }] : []),
+              ...(priceRange > 0 ? [{ key: "priceRange", label: "Price", value: PRICE_RANGES[priceRange]?.label || "", onRemove: () => set("priceRange", undefined) }] : []),
+            ]}
+          />
+
+          <div className="flex items-center justify-between mb-6 mt-4">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {pagination ? `${pagination.total} medicines found` : ""}
             </p>
             <select
               value={sort}
-              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+              onChange={(e) => set("sort", e.target.value === "createdAt_desc" ? undefined : e.target.value)}
               className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               {MEDICINE_SORT_OPTIONS.map((opt) => (
@@ -279,10 +298,7 @@ export default function MedicinesPage() {
               title="No medicines found"
               description="Try adjusting your filters or search terms."
               action={
-                <button
-                  onClick={() => { setCategory(""); setPriceRange(0); setPrescription(""); setSearch(""); setDebouncedSearch(""); setPage(1); }}
-                  className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
+                <button onClick={resetAll} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">
                   Clear Filters
                 </button>
               }
@@ -296,7 +312,13 @@ export default function MedicinesPage() {
               </div>
               {pagination && pagination.totalPages > 1 && (
                 <div className="mt-8">
-                  <Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} />
+                  <Pagination
+                    page={page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.total}
+                    perPage={MEDICINES_PER_PAGE}
+                    onPageChange={setPage}
+                  />
                 </div>
               )}
             </>

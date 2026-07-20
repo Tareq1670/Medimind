@@ -1,6 +1,6 @@
 import { get, post } from "@/lib/api";
 import { API_ENDPOINTS } from "@/constants";
-import type { ChatMessage, ChatSession, SymptomAnalysis, ReportAnalysis, AIRecommendation } from "@/types";
+import type { ChatMessage, ChatSession, ReportAnalysis, AIRecommendation } from "@/types";
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -25,8 +25,28 @@ export const aiService = {
   sendMessage: (sessionId: string, content: string) =>
     post<ChatMessage>(`${API_ENDPOINTS.CHAT_SESSIONS}/${sessionId}/messages`, { content }),
 
-  analyzeSymptoms: (symptoms: string[], duration?: string) =>
-    post<SymptomAnalysis>(API_ENDPOINTS.SYMPTOM_ANALYSES, { symptoms, duration }),
+  analyzeSymptoms: (
+    reportedSymptoms: string[],
+    duration?: string,
+    severity?: string,
+    additionalInfo?: string
+  ) =>
+    post<{
+      urgencyLevel: string;
+      urgencyExplanation: string;
+      possibleConditions: { name: string; probability: string; description: string; commonIn: string }[];
+      recommendations: string[];
+      warningSignsToWatch: string[];
+      shouldSeeDoctor: boolean;
+      doctorType: string;
+      lifestyleAdvice: string[];
+      disclaimer: string;
+    }>(`${API_ENDPOINTS.AI}/symptom-analysis`, {
+      reportedSymptoms,
+      duration,
+      severity,
+      additionalInfo,
+    }),
 
   analyzeReport: (formData: FormData) =>
     post<ReportAnalysis>(API_ENDPOINTS.REPORT_ANALYSES, formData),

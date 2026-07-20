@@ -3,6 +3,7 @@
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { imageUploader } from "@/lib/imageUploader";
 import { patch } from "@/lib/api";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -58,8 +59,7 @@ export default function ProfilePage() {
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
               {user?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.image} alt="" className="w-full h-full object-cover" />
+                <Image src={user.image} alt="" fill className="object-cover" />
               ) : (
                 user?.name?.charAt(0)?.toUpperCase() || "U"
               )}

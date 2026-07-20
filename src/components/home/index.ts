@@ -9,3 +9,5 @@ export { Testimonials } from "@/components/landing/Testimonials";
 export { BlogPreview } from "@/components/landing/BlogPreview";
 export { SymptomChecker } from "@/components/landing/SymptomChecker";
 export { NewsletterSignup } from "@/components/landing/NewsletterSignup";
+export { FAQ } from "@/components/landing/FAQ";
+export { BackToTop, ThemeToggle } from "@/components/landing/BackToTop";

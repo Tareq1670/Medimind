@@ -70,23 +70,8 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user, ctx) => {
-          const validRoles = ["user", "doctor", "admin"];
-          let role = ctx?.body?.role;
-
-          if (!role || !validRoles.includes(role)) {
-            try {
-              const cookie = ctx?.request?.headers?.get("cookie");
-              if (cookie) {
-                const match = cookie.match(/medimind_pending_role=([^;]+)/);
-                const cookieRole: string = match ? match[1] : "";
-                if (validRoles.includes(cookieRole)) {
-                  role = cookieRole;
-                }
-              }
-            } catch {
-              /* cookie read failed — fall through to default */
-            }
-          }
+          const validRoles = ["user", "doctor"];
+          const role = ctx?.body?.role;
           return {
             data: {
               ...user,

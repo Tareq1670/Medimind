@@ -7,18 +7,43 @@ interface AppUser {
   name: string;
   email: string;
   role: string;
-  image?: string;
+  avatar?: string;
   banned: boolean;
   createdAt: string;
 }
 
-export function useUsers() {
+interface UserFilter {
+  search?: string;
+  role?: string;
+  page?: number;
+  limit?: number;
+}
+
+interface PaginatedResult {
+  data: AppUser[];
+  pagination?: { page: number; totalPages: number; total: number; hasNextPage: boolean; hasPrevPage: boolean };
+}
+
+export function useUsers(filter: UserFilter = {}) {
+  const params = new URLSearchParams();
+  if (filter.search) params.set("search", filter.search);
+  if (filter.role) params.set("role", filter.role);
+  if (filter.page) params.set("page", String(filter.page));
+  if (filter.limit) params.set("limit", String(filter.limit));
+  const qs = params.toString();
+
   return useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", filter],
     queryFn: async () => {
-      const result = await get<{ data: AppUser[] }>("/auth/users");
-      return result.data ?? (Array.isArray(result) ? result : []);
+      const result = await get<PaginatedResult>(`/auth/users${qs ? `?${qs}` : ""}`);
+      return {
+        data: result.data ?? (Array.isArray(result) ? result : []),
+        pagination: result.pagination,
+      };
     },
+    staleTime: 1000 * 60 * 3,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 

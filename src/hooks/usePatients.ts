@@ -15,8 +15,8 @@ export function usePatients() {
   return useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const result = await get<{ data: Patient[] }>("/doctors/patients");
-      return result.data ?? (Array.isArray(result) ? result : []);
+      const result = await get<Patient[]>("/doctors/patients");
+      return Array.isArray(result) ? result : [];
     },
   });
 }

@@ -138,6 +138,20 @@ export function useDeleteDoctor() {
   });
 }
 
+export function useVerifyDoctor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isVerified }: { id: string; isVerified: boolean }) =>
+      patch(`/doctors/${id}`, { isVerified }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctors-list"] });
+      qc.invalidateQueries({ queryKey: ["all-doctors"] });
+      toast.success("Doctor verification updated");
+    },
+    onError: () => toast.error("Failed to update verification"),
+  });
+}
+
 export function useAllDoctors(filter: DoctorFilter = {}) {
   const params = new URLSearchParams();
   if (filter.specialty) params.set("specialty", filter.specialty);

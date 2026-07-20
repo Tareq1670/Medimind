@@ -1,20 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useBlogsManage, useUpdateBlog, useDeleteBlog } from "@/hooks/useBlogsList";
-import { LoadingSpinner, EmptyState } from "@/components/shared";
+import { TableSkeleton, EmptyState, Pagination, ActiveFilters } from "@/components/shared";
 import { BookOpen, Search, X, Loader2, AlertTriangle, Plus } from "@/lib/icon-map";
 import { cn } from "@/lib/utils";
+import { useURLFilters } from "@/hooks/useURLFilters";
 import type { Blog } from "@/types";
 
+const blogFilters = {
+  search: { debounce: 300 },
+  status: {},
+} as const;
+
 export default function ManageBlogsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const { filters: f, page, set, setMany, setPage, resetAll, activeFilterCount } = useURLFilters(blogFilters);
+  const [searchInput, setSearchInput] = useState(f.search);
+
+  useEffect(() => { setSearchInput(f.search); }, [f.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== f.search) set("search", searchInput || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, f.search, set]);
   const [editBlog, setEditBlog] = useState<Blog | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", content: "", status: "Draft" as "Draft" | "Published" });
+
+  const search = f.search;
+  const statusFilter = f.status;
 
   const filter = {
     search: search || undefined,
@@ -65,13 +82,13 @@ export default function ManageBlogsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" placeholder="Search articles..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          <input type="text" placeholder="Search articles..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
           />
         </div>
         <div className="flex gap-2">
           {["", "Published", "Draft"].map((s) => (
-            <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
+            <button key={s} onClick={() => setMany({ status: s || undefined })}
               className={cn("px-3 py-2 rounded-xl text-sm font-medium transition-colors border",
                 statusFilter === s ? "bg-primary text-white border-primary" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800",
               )}
@@ -82,8 +99,17 @@ export default function ManageBlogsPage() {
         </div>
       </div>
 
+      <ActiveFilters
+        totalCount={activeFilterCount}
+        onClearAll={() => { resetAll(); setSearchInput(""); }}
+        chips={[
+          ...(search ? [{ key: "search", label: "Search", value: search, onRemove: () => { set("search", undefined); setSearchInput(""); } }] : []),
+          ...(statusFilter ? [{ key: "status", label: "Status", value: statusFilter, onRemove: () => set("status", undefined) }] : []),
+        ]}
+      />
+
       {isLoading ? (
-        <LoadingSpinner className="py-20" text="Loading articles..." />
+        <TableSkeleton rows={5} columns={5} />
       ) : blogs.length === 0 ? (
         <EmptyState icon={<BookOpen className="w-12 h-12" />} title="No articles found"
           action={!search ? <Link href="/blogs/create" className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">Write Article</Link> : undefined}
@@ -132,14 +158,7 @@ export default function ManageBlogsPage() {
           {data?.pagination && data.pagination.totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700">
               <p className="text-xs text-slate-400">Page {page} of {data.pagination.totalPages}</p>
-              <div className="flex gap-2">
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40"
-                >Previous</button>
-                <button onClick={() => setPage((p) => p + 1)} disabled={page >= data.pagination.totalPages}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40"
-                >Next</button>
-              </div>
+              <Pagination page={page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
             </div>
           )}
         </div>

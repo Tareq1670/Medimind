@@ -1,176 +1,257 @@
 "use client";
 
-import { useHealthRecords, useAddHealthRecord, useDeleteHealthRecord } from "@/hooks/useHealthRecords";
-import { useState } from "react";
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
+import { useHealthRecords, useCreateHealthRecord, useUpdateHealthRecord, useDeleteHealthRecord } from "@/hooks/useHealthRecords";
+import { useState, useRef, useEffect } from "react";
+import { ListSkeleton, EmptyState } from "@/components/shared";
 
-type RecordType = "blood_pressure" | "heart_rate" | "blood_sugar" | "weight" | "temperature" | "other";
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="card-standard p-5 space-y-3">
+      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
+      {children}
+    </div>
+  );
+}
 
-const typeOptions: { value: RecordType; label: string; unit: string }[] = [
-  { value: "blood_pressure", label: "Blood Pressure", unit: "mmHg" },
-  { value: "heart_rate", label: "Heart Rate", unit: "bpm" },
-  { value: "blood_sugar", label: "Blood Sugar", unit: "mg/dL" },
-  { value: "weight", label: "Weight", unit: "kg" },
-  { value: "temperature", label: "Temperature", unit: "°F" },
-  { value: "other", label: "Other", unit: "" },
-];
+function TagInput({ label, tags, onChange }: { label: string; tags: string[]; onChange: (t: string[]) => void }) {
+  const [input, setInput] = useState("");
+  const add = () => {
+    const v = input.trim();
+    if (v && !tags.includes(v)) { onChange([...tags, v]); setInput(""); }
+  };
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</label>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {tags.map((t) => (
+          <span key={t} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+            {t}
+            <button onClick={() => onChange(tags.filter((x) => x !== t))} className="hover:text-red-500">&times;</button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          placeholder={`Add ${label.toLowerCase()}...`}
+          className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+        <button onClick={add} type="button" className="rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600">Add</button>
+      </div>
+    </div>
+  );
+}
 
 export default function HealthRecordsPage() {
-  const { data: records, isLoading } = useHealthRecords();
-  const addRecord = useAddHealthRecord();
+  const { data: record, isLoading } = useHealthRecords();
+  const createRecord = useCreateHealthRecord();
+  const updateRecord = useUpdateHealthRecord();
   const deleteRecord = useDeleteHealthRecord();
-  const [showForm, setShowForm] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const [form, setForm] = useState({
-    type: "blood_pressure" as RecordType,
-    value: "",
-    unit: "mmHg",
-    date: new Date().toISOString().split("T")[0],
-    notes: "",
+    chronicConditions: [] as string[],
+    allergies: [] as string[],
+    currentMedications: [] as { name: string; dosage: string; frequency: string }[],
+    emergencyContact: { name: "", relationship: "", phone: "" },
   });
 
-  const handleTypeChange = (type: RecordType) => {
-    const opt = typeOptions.find((o) => o.value === type);
-    setForm({ ...form, type, unit: opt?.unit || "" });
+  const [medForm, setMedForm] = useState({ name: "", dosage: "", frequency: "" });
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (isOpen) {
+      dialog.showModal();
+    } else {
+      dialog.close();
+    }
+  }, [isOpen]);
+
+  const onOpen = () => setIsOpen(true);
+  const onClose = () => setIsOpen(false);
+
+  const startCreate = () => {
+    setForm({ chronicConditions: [], allergies: [], currentMedications: [], emergencyContact: { name: "", relationship: "", phone: "" } });
+    setEditing(false);
+    onOpen();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await addRecord.mutateAsync(form);
-    setForm({ type: "blood_pressure", value: "", unit: "mmHg", date: new Date().toISOString().split("T")[0], notes: "" });
-    setShowForm(false);
+  const startEdit = () => {
+    if (!record) return;
+    setForm({
+      chronicConditions: [...(record.chronicConditions || [])],
+      allergies: [...(record.allergies || [])],
+      currentMedications: (record.currentMedications || []).map((m) => ({ name: m.name, dosage: m.dosage, frequency: m.frequency })),
+      emergencyContact: record.emergencyContact ? { ...record.emergencyContact } : { name: "", relationship: "", phone: "" },
+    });
+    setEditing(true);
+    onOpen();
   };
 
-  const chartData = (records || [])
-    .filter((r) => r.type !== "other")
-    .slice(-20)
-    .map((r) => ({ date: r.date?.slice(5, 10) || r.createdAt?.slice(5, 10), value: parseFloat(r.value) || 0, type: r.type }));
+  const handleSave = async () => {
+    const payload = {
+      ...form,
+      emergencyContact: form.emergencyContact.name ? form.emergencyContact : undefined,
+    };
+    if (editing) {
+      await updateRecord.mutateAsync(payload);
+    } else {
+      await createRecord.mutateAsync(payload);
+    }
+    onClose();
+  };
+
+  const handleDelete = async () => {
+    await deleteRecord.mutateAsync();
+    onClose();
+  };
+
+  const addMed = () => {
+    if (medForm.name && medForm.dosage && medForm.frequency) {
+      setForm({ ...form, currentMedications: [...form.currentMedications, { ...medForm }] });
+      setMedForm({ name: "", dosage: "", frequency: "" });
+    }
+  };
+
+  const removeMed = (idx: number) => {
+    setForm({ ...form, currentMedications: form.currentMedications.filter((_, i) => i !== idx) });
+  };
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Health Records</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Track your vitals and health data</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your health profile</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
-        >
-          {showForm ? "Cancel" : "Add Record"}
-        </button>
+        {record ? (
+          <div className="flex gap-2">
+            <button onClick={startEdit} className="rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Edit</button>
+            <button onClick={handleDelete} disabled={deleteRecord.isPending} className="rounded-xl border border-red-200 dark:border-red-800 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50">Delete</button>
+          </div>
+        ) : (
+          <button onClick={startCreate} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors">Create Record</button>
+        )}
       </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="card-standard p-5 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
-              <select
-                value={form.type}
-                onChange={(e) => handleTypeChange(e.target.value as RecordType)}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm"
-              >
-                {typeOptions.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Value</label>
-              <input
-                type="text"
-                value={form.value}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
-                required
-                placeholder="e.g. 120"
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
-              <input
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Notes (optional)</label>
-            <input
-              type="text"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Any additional notes"
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={addRecord.isPending}
-            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
-          >
-            {addRecord.isPending ? "Saving..." : "Save Record"}
-          </button>
-        </form>
-      )}
-
-      {chartData.length > 0 && (
-        <div className="card-standard p-5">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Trends</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card-standard p-4 animate-pulse">
-              <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-              <div className="h-3 w-48 bg-slate-200 dark:bg-slate-700 rounded mt-2" />
-            </div>
-          ))}
-        </div>
-      ) : records && records.length > 0 ? (
-        <div className="space-y-3">
-          {records.map((r) => (
-            <div key={r._id} className="card-standard p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-900 dark:text-white capitalize">
-                  {r.type.replace("_", " ")}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {r.value} {r.unit} &middot; {new Date(r.date || r.createdAt).toLocaleDateString()}
-                </p>
-                {r.notes && <p className="text-xs text-slate-400 mt-1">{r.notes}</p>}
+        <ListSkeleton count={3} />
+      ) : record ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SectionCard title="Chronic Conditions">
+            {record.chronicConditions?.length ? (
+              <ul className="space-y-1.5">
+                {record.chronicConditions.map((c) => (
+                  <li key={c} className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-400">None recorded</p>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Allergies">
+            {record.allergies?.length ? (
+              <ul className="space-y-1.5">
+                {record.allergies.map((a) => (
+                  <li key={a} className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-400">None recorded</p>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Current Medications">
+            {record.currentMedications?.length ? (
+              <ul className="space-y-2">
+                {record.currentMedications.map((m, i) => (
+                  <li key={i} className="text-sm">
+                    <span className="font-medium text-slate-900 dark:text-white">{m.name}</span>
+                    <span className="text-slate-500 dark:text-slate-400 ml-2">{m.dosage} &middot; {m.frequency}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-400">None recorded</p>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Emergency Contact">
+            {record.emergencyContact ? (
+              <div className="text-sm space-y-1">
+                <p className="font-medium text-slate-900 dark:text-white">{record.emergencyContact.name}</p>
+                <p className="text-slate-500 dark:text-slate-400">{record.emergencyContact.relationship} &middot; {record.emergencyContact.phone}</p>
               </div>
-              <button
-                onClick={() => deleteRecord.mutate(r._id)}
-                className="text-red-400 hover:text-red-600 text-xs font-medium"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+            ) : (
+              <p className="text-xs text-slate-400">Not set</p>
+            )}
+          </SectionCard>
         </div>
       ) : (
-        <div className="card-standard p-10 text-center">
-          <p className="text-slate-500 dark:text-slate-400">No health records yet.</p>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Click &quot;Add Record&quot; to start tracking.</p>
-        </div>
+        <EmptyState
+          title="No health record yet"
+          description="Create a health record to track your conditions, allergies, and medications."
+        />
       )}
+
+      <dialog ref={dialogRef} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl backdrop:bg-black/40 max-w-2xl w-full p-0" onCancel={onClose}>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{editing ? "Edit Health Record" : "Create Health Record"}</h2>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <TagInput label="Chronic Conditions" tags={form.chronicConditions} onChange={(t) => setForm({ ...form, chronicConditions: t })} />
+          <TagInput label="Allergies" tags={form.allergies} onChange={(t) => setForm({ ...form, allergies: t })} />
+
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Current Medications</label>
+            {form.currentMedications.map((m, i) => (
+              <div key={i} className="flex items-center gap-2 mb-1.5 text-sm">
+                <span className="font-medium text-slate-900 dark:text-white">{m.name}</span>
+                <span className="text-slate-500">{m.dosage} &middot; {m.frequency}</span>
+                <button onClick={() => removeMed(i)} className="ml-auto text-red-400 hover:text-red-600 text-xs">Remove</button>
+              </div>
+            ))}
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <input value={medForm.name} onChange={(e) => setMedForm({ ...medForm, name: e.target.value })} placeholder="Name" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={medForm.dosage} onChange={(e) => setMedForm({ ...medForm, dosage: e.target.value })} placeholder="Dosage" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={medForm.frequency} onChange={(e) => setMedForm({ ...medForm, frequency: e.target.value })} placeholder="Frequency" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <button onClick={addMed} type="button" className="mt-2 rounded-lg bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600">Add Medication</button>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Emergency Contact</label>
+            <div className="grid grid-cols-3 gap-2">
+              <input value={form.emergencyContact.name} onChange={(e) => setForm({ ...form, emergencyContact: { ...form.emergencyContact, name: e.target.value } })} placeholder="Name" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={form.emergencyContact.relationship} onChange={(e) => setForm({ ...form, emergencyContact: { ...form.emergencyContact, relationship: e.target.value } })} placeholder="Relationship" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+              <input value={form.emergencyContact.phone} onChange={(e) => setForm({ ...form, emergencyContact: { ...form.emergencyContact, phone: e.target.value } })} placeholder="Phone" className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={onClose} className="rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+            <button onClick={handleSave} disabled={createRecord.isPending || updateRecord.isPending} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {createRecord.isPending || updateRecord.isPending ? "Saving..." : editing ? "Save Changes" : "Create"}
+            </button>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 }

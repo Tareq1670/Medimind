@@ -33,6 +33,7 @@ export const ROUTES = {
   DOCTOR_MESSAGES: "/messages",
   REPORT_HISTORY: "/report-analysis/history",
   REVIEWS_MANAGE: "/reviews/manage",
+  RECOMMENDATIONS: "/recommendations",
 } as const;
 
 export const PUBLIC_ROUTES = [
@@ -72,6 +73,7 @@ export const PROTECTED_ROUTES = {
     [ROUTES.BLOGS_MANAGE]: ["admin"],
     [ROUTES.DOCTORS_MANAGE]: ["admin"],
     [ROUTES.CONDITIONS_MANAGE]: ["admin"],
+    [ROUTES.RECOMMENDATIONS]: ["user"],
   } as Record<string, string[]>,
 } as const;
 

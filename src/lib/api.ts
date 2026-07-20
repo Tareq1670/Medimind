@@ -4,37 +4,69 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public details?: { field: string; message: string }[],
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-export function getAuthHeaders(): Record<string, string> {
+let cachedToken: string | null = null;
+
+export function clearTokenCache() {
+  cachedToken = null;
+}
+
+export async function getJwtToken(): Promise<string | null> {
+  if (cachedToken) return cachedToken;
+  try {
+    const res = await fetch("/api/auth/token", { credentials: "include" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json.token) {
+      cachedToken = json.token;
+      return cachedToken;
+    }
+  } catch {
+    // not logged in or auth service unavailable
+  }
+  return null;
+}
+
+export async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (typeof document !== "undefined") {
-    const match = document.cookie.match(/(?:^|;\s*)better-auth\.session_token=([^;]*)/);
-    if (match) {
-      headers["Authorization"] = `Bearer ${match[1]}`;
-    }
+  const token = await getJwtToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const authHeaders = await getAuthHeaders();
   const res = await fetch(`${API_BASE}${endpoint}`, {
     cache: "no-store",
     ...options,
     headers: {
-      ...getAuthHeaders(),
+      ...authHeaders,
       ...options.headers,
     },
   });
 
   if (!res.ok) {
-    throw new ApiError(res.status, `API request failed: ${res.statusText}`);
+    if (res.status === 401) clearTokenCache();
+    let errorMsg = `API request failed: ${res.statusText}`;
+    let details: { field: string; message: string }[] | undefined;
+    try {
+      const errBody = await res.json();
+      errorMsg = errBody.message || errBody.error || errorMsg;
+      details = errBody.details;
+    } catch {
+      // response is not JSON — use default message
+    }
+    throw new ApiError(res.status, errorMsg, details);
   }
 
   const json = await res.json();
@@ -73,4 +105,31 @@ export async function patch<T>(endpoint: string, body?: unknown): Promise<T> {
 
 export async function deleteRequest<T>(endpoint: string): Promise<T> {
   return request<T>(endpoint, { method: "DELETE" });
+}
+
+export async function uploadFile<T>(endpoint: string, formData: FormData): Promise<T> {
+  const token = await getJwtToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: "POST",
+    headers,
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) clearTokenCache();
+    throw new ApiError(res.status, `Upload failed: ${res.statusText}`);
+  }
+
+  const json = await res.json();
+
+  if (!json.success) {
+    throw new ApiError(500, json.message || "Upload failed");
+  }
+
+  return json.data as T;
 }

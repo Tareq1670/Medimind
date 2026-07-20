@@ -1,34 +1,72 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePatients } from "@/hooks/usePatients";
+import { Search } from "@/lib/icon-map";
+import { CardSkeleton, EmptyState, ActiveFilters } from "@/components/shared";
+import { useURLFilters } from "@/hooks/useURLFilters";
+
+const patientFilters = {
+  search: { debounce: 300 },
+} as const;
 
 export default function PatientsPage() {
   const { data: patients, isLoading } = usePatients();
+  const { filters: f, set, resetAll, activeFilterCount } = useURLFilters(patientFilters);
+  const [searchInput, setSearchInput] = useState(f.search);
+
+  useEffect(() => { setSearchInput(f.search); }, [f.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== f.search) set("search", searchInput || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, f.search, set]);
+
+  const search = f.search;
+
+  const filtered = (patients || []).filter((p) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return p.name?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q);
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Patients</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">View and manage your linked patients</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {patients?.length || 0} patients linked
+        </p>
       </div>
 
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search patients..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        />
+      </div>
+
+      <ActiveFilters
+        totalCount={activeFilterCount}
+        onClearAll={() => { resetAll(); setSearchInput(""); }}
+        chips={
+          search
+            ? [{ key: "search", label: "Search", value: search, onRemove: () => { set("search", undefined); setSearchInput(""); } }]
+            : []
+        }
+      />
+
       {isLoading ? (
+        <CardSkeleton count={6} />
+      ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="card-standard p-5 animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700" />
-                <div className="space-y-2 flex-1">
-                  <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-                  <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : patients && patients.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {patients.map((p) => (
+          {filtered.map((p) => (
             <div key={p._id} className="card-standard p-5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold shrink-0">
                 {p.name?.charAt(0)?.toUpperCase() || "P"}
@@ -51,13 +89,10 @@ export default function PatientsPage() {
           ))}
         </div>
       ) : (
-        <div className="card-standard p-10 text-center">
-          <svg className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <p className="text-slate-500 dark:text-slate-400">No patients linked to your account yet.</p>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">Patients will appear here once they connect with you.</p>
-        </div>
+        <EmptyState
+          title={search ? "No patients match your search" : "No patients linked yet"}
+          description={search ? "Try adjusting your search term." : "Patients will appear here once they connect with you."}
+        />
       )}
     </div>
   );

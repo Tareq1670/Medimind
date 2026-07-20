@@ -1,6 +1,7 @@
 "use client";
 
 import { useAnalytics } from "@/hooks/useStats";
+import { Skeleton } from "@heroui/react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area,
@@ -23,9 +24,9 @@ export default function AnalyticsPage() {
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="card-standard p-5 animate-pulse">
-              <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
-              <div className="h-8 w-12 bg-slate-200 dark:bg-slate-700 rounded mt-3" />
+            <div key={i} className="card-standard p-5 space-y-3">
+              <Skeleton className="h-3 w-20 rounded-lg" />
+              <Skeleton className="h-8 w-12 rounded-lg" />
             </div>
           ))}
         </div>

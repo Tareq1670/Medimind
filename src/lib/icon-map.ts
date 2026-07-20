@@ -67,4 +67,5 @@ export {
   FaSlidersH as SlidersHorizontal,
   FaCheckCircle as CheckCircle,
   FaPlus as Plus,
+  FaArrowUp as ArrowUp,
 } from "react-icons/fa";

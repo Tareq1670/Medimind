@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useDoctor } from "@/hooks/useDoctorsList";
 import { StarRating, LoadingSpinner } from "@/components/shared";
 import { Stethoscope, UserCheck, Phone, MapPin, Clock, ChevronLeft, CalendarDays } from "@/lib/icon-map";
@@ -62,9 +63,9 @@ export default function DoctorDetailPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="px-6 pb-6 -mt-16">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-            <div className="w-28 h-28 rounded-2xl bg-white dark:bg-slate-800 border-4 border-white dark:border-slate-800 shadow-lg overflow-hidden flex items-center justify-center">
+            <div className="relative w-28 h-28 rounded-2xl bg-white dark:bg-slate-800 border-4 border-white dark:border-slate-800 shadow-lg overflow-hidden flex items-center justify-center">
               {doctor.image ? (
-                <img src={doctor.image} alt={doctor.name} className="w-full h-full object-cover" />
+                <Image src={doctor.image} alt={doctor.name} fill className="object-cover" />
               ) : (
                 <span className="text-4xl font-bold text-primary">{doctor.name?.charAt(0)}</span>
               )}

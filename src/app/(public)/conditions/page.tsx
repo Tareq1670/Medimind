@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useConditions } from "@/hooks/useConditions";
-import { Pagination, EmptyState } from "@/components/shared";
+import { useURLFilters } from "@/hooks/useURLFilters";
+import { Pagination, EmptyState, ActiveFilters } from "@/components/shared";
 import { Search, AlertTriangle } from "@/lib/icon-map";
 import { cn } from "@/lib/utils";
 import type { Condition } from "@/types";
@@ -16,6 +17,11 @@ const SEVERITY_OPTIONS = [
 ];
 
 const CONDITIONS_PER_PAGE = 12;
+
+const filterSchema = {
+  search: { debounce: 300 },
+  severity: {},
+} as const;
 
 function ConditionCard({ condition }: { condition: Condition }) {
   const severityColors: Record<string, string> = {
@@ -68,17 +74,28 @@ function ConditionCardSkeleton() {
 }
 
 export default function ConditionsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [severity, setSeverity] = useState("");
+  const { filters: f, page, set, setPage, resetAll, activeFilterCount } = useURLFilters(filterSchema);
+  const [searchInput, setSearchInput] = useState(f.search);
   const [showFilters, setShowFilters] = useState(false);
 
-  const filter = useMemo(() => ({
+  useEffect(() => { setSearchInput(f.search); }, [f.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== f.search) set("search", searchInput || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, f.search, set]);
+
+  const search = f.search;
+  const severity = f.severity;
+
+  const filter = {
     search: search || undefined,
     severity: severity || undefined,
     page,
     limit: CONDITIONS_PER_PAGE,
-  }), [search, severity, page]);
+  };
 
   const { data, isLoading, isError } = useConditions(filter);
   const conditions = data?.data || [];
@@ -109,7 +126,7 @@ export default function ConditionsPage() {
           <div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Search conditions..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              <input type="text" placeholder="Search conditions..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
             </div>
@@ -118,7 +135,7 @@ export default function ConditionsPage() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Severity</h3>
             <div className="space-y-1">
               {SEVERITY_OPTIONS.map((s) => (
-                <button key={s.value} onClick={() => { setSeverity(s.value); setPage(1); }}
+                <button key={s.value} onClick={() => set("severity", s.value || undefined)}
                   className={cn("w-full text-left px-3 py-2 rounded-lg text-sm transition-colors", severity === s.value ? "bg-primary/10 text-primary font-medium" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800")}
                 >
                   <span className={cn("inline-block px-2 py-0.5 rounded text-xs font-medium", s.color)}>{s.label}</span>
@@ -126,7 +143,7 @@ export default function ConditionsPage() {
               ))}
             </div>
           </div>
-          <button onClick={() => { setSeverity(""); setSearch(""); setPage(1); }}
+          <button onClick={resetAll}
             className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Clear Filters
@@ -136,7 +153,16 @@ export default function ConditionsPage() {
         {showFilters && <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setShowFilters(false)} />}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6">
+          <ActiveFilters
+            totalCount={activeFilterCount}
+            onClearAll={() => { resetAll(); setSearchInput(""); }}
+            chips={[
+              ...(search ? [{ key: "search", label: "Search", value: search, onRemove: () => { set("search", undefined); setSearchInput(""); } }] : []),
+              ...(severity ? [{ key: "severity", label: "Severity", value: severity, onRemove: () => set("severity", undefined) }] : []),
+            ]}
+          />
+
+          <div className="flex items-center justify-between mb-6 mt-4">
             <p className="text-sm text-slate-500 dark:text-slate-400">{pagination ? `${pagination.total} conditions found` : ""}</p>
           </div>
 
@@ -148,7 +174,7 @@ export default function ConditionsPage() {
             <EmptyState icon={<AlertTriangle className="w-12 h-12" />} title="Failed to load conditions" description="Something went wrong. Please try again later." />
           ) : conditions.length === 0 ? (
             <EmptyState icon={<AlertTriangle className="w-12 h-12" />} title="No conditions found" description="Try adjusting your search or severity filter."
-              action={<button onClick={() => { setSeverity(""); setSearch(""); setPage(1); }} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">Clear Filters</button>}
+              action={<button onClick={() => { resetAll(); setSearchInput(""); }} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">Clear Filters</button>}
             />
           ) : (
             <>
@@ -156,7 +182,15 @@ export default function ConditionsPage() {
                 {conditions.map((condition) => <ConditionCard key={condition._id} condition={condition} />)}
               </div>
               {pagination && pagination.totalPages > 1 && (
-                <div className="mt-8"><Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} /></div>
+                <div className="mt-8">
+                  <Pagination
+                    page={page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.total}
+                    perPage={CONDITIONS_PER_PAGE}
+                    onPageChange={setPage}
+                  />
+                </div>
               )}
             </>
           )}

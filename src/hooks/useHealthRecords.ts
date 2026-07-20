@@ -1,48 +1,83 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { get, post, deleteRequest } from "@/lib/api";
+import { get, post, put, deleteRequest } from "@/lib/api";
 import toast from "react-hot-toast";
 
-interface HealthRecord {
+interface CurrentMedication {
+  name: string;
+  dosage: string;
+  frequency: string;
+  startDate?: string;
+}
+
+interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
+export interface HealthRecord {
   _id: string;
-  type: string;
-  value: string;
-  unit: string;
-  date: string;
-  notes?: string;
+  patientId: string;
+  chronicConditions: string[];
+  allergies: string[];
+  currentMedications: CurrentMedication[];
+  emergencyContact?: EmergencyContact;
   createdAt: string;
+  updatedAt: string;
 }
 
 export function useHealthRecords() {
   return useQuery({
     queryKey: ["health-records"],
     queryFn: async () => {
-      const result = await get<{ data: HealthRecord[] }>("/health-records");
-      return result.data ?? (Array.isArray(result) ? result : []);
+      const result = await get<HealthRecord>("/health-records");
+      return result;
     },
   });
 }
 
-export function useAddHealthRecord() {
+export function useCreateHealthRecord() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { type: string; value: string; unit: string; date: string; notes?: string }) =>
-      post("/health-records", data),
+    mutationFn: (data: {
+      chronicConditions?: string[];
+      allergies?: string[];
+      currentMedications?: CurrentMedication[];
+      emergencyContact?: EmergencyContact;
+    }) => post("/health-records", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["health-records"] });
-      toast.success("Health record added");
+      toast.success("Health record created");
     },
-    onError: () => toast.error("Failed to add health record"),
+    onError: () => toast.error("Failed to create health record"),
+  });
+}
+
+export function useUpdateHealthRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      chronicConditions?: string[];
+      allergies?: string[];
+      currentMedications?: CurrentMedication[];
+      emergencyContact?: EmergencyContact;
+    }) => put("/health-records", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["health-records"] });
+      toast.success("Health record updated");
+    },
+    onError: () => toast.error("Failed to update health record"),
   });
 }
 
 export function useDeleteHealthRecord() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteRequest(`/health-records/${id}`),
+    mutationFn: () => deleteRequest("/health-records"),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["health-records"] });
-      toast.success("Record deleted");
+      toast.success("Health record deleted");
     },
-    onError: () => toast.error("Failed to delete record"),
+    onError: () => toast.error("Failed to delete health record"),
   });
 }

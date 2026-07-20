@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useCreateMedicine } from "@/hooks/useMedicines";
+import { useAiMedicineRecommendation } from "@/hooks/useAI";
 import { imageUploader } from "@/lib/imageUploader";
 import { Pill, Sparkles, Loader2, X } from "@/lib/icon-map";
 import { MEDICINE_CATEGORIES } from "@/constants";
@@ -18,6 +20,9 @@ export default function AddMedicinePage() {
     isPrescriptionRequired: false, image: "",
   });
   const [uploading, setUploading] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+
+  const aiMedicineRecommendation = useAiMedicineRecommendation();
 
   const update = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -64,14 +69,30 @@ export default function AddMedicinePage() {
     }
   };
 
-  const handleAiDescription = () => {
-    const desc = `${form.name} (${form.genericName}) is a ${form.category.toLowerCase()} medication manufactured by ${form.manufacturer}. It is used for the treatment of various medical conditions. Always follow the dosage instructions provided by your healthcare provider.`;
-    update("description", desc);
-    toast.success("AI description generated");
-  };
-
-  const handleAiTags = () => {
-    toast.success("AI tags generated");
+  const handleAiDescription = async () => {
+    if (!form.name) { toast.error("Enter a medicine name first"); return; }
+    setAiGenerating(true);
+    try {
+      const result = await aiMedicineRecommendation.mutateAsync({
+        conditions: [form.category],
+        healthGoals: [form.name, form.genericName],
+      });
+      const tips = result.lifestyleTips?.length > 0
+        ? `\n\nLifestyle Tips:\n${result.lifestyleTips.map((t: string) => `• ${t}`).join("\n")}`
+        : "";
+      const avoid = result.itemsToAvoid?.length > 0
+        ? `\n\nItems to Avoid:\n${result.itemsToAvoid.map((a: { name: string; reason: string }) => `• ${a.name}: ${a.reason}`).join("\n")}`
+        : "";
+      const desc = `${form.name} (${form.genericName}) is a ${form.category.toLowerCase()} medication manufactured by ${form.manufacturer}. ${result.recommendations?.[0]?.reason || "It is used for the treatment of various medical conditions."}${tips}${avoid}\n\nAlways follow the dosage instructions provided by your healthcare provider.`;
+      update("description", desc);
+      toast.success("AI description generated");
+    } catch {
+      const desc = `${form.name} (${form.genericName}) is a ${form.category.toLowerCase()} medication manufactured by ${form.manufacturer}. It is used for the treatment of various medical conditions. Always follow the dosage instructions provided by your healthcare provider.`;
+      update("description", desc);
+      toast.success("AI description generated (template)");
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
   return (
@@ -147,10 +168,10 @@ export default function AddMedicinePage() {
         <div className="card-standard p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading text-lg font-semibold text-slate-900 dark:text-white">Description</h2>
-            <button type="button" onClick={handleAiDescription}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+            <button type="button" onClick={handleAiDescription} disabled={aiGenerating}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
             >
-              <Sparkles className="w-3.5 h-3.5" /> AI Generate
+              {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} {aiGenerating ? "Generating..." : "AI Generate"}
             </button>
           </div>
           <textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={4} placeholder="Enter medicine description..."
@@ -188,7 +209,7 @@ export default function AddMedicinePage() {
             </div>
             {form.image && (
               <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
-                <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
+                <Image src={form.image} alt="Preview" fill className="object-cover" />
                 <button type="button" onClick={() => update("image", "")}
                   className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center"
                 >
@@ -204,7 +225,7 @@ export default function AddMedicinePage() {
           <div className="card-standard overflow-hidden max-w-xs">
             <div className="h-40 bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
               {form.image ? (
-                <img src={form.image} alt="" className="w-full h-full object-contain p-4" />
+                <Image src={form.image} alt="" fill className="object-contain p-4" />
               ) : (
                 <Pill className="w-12 h-12 text-primary/30" />
               )}

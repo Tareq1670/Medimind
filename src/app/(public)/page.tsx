@@ -13,6 +13,8 @@ import {
   BlogPreview,
   SymptomChecker,
   NewsletterSignup,
+  FAQ,
+  BackToTop,
 } from "@/components/home";
 
 export default function Home() {
@@ -30,7 +32,9 @@ export default function Home() {
       <Testimonials />
       <BlogPreview />
       <SymptomChecker />
+      <FAQ />
       <NewsletterSignup />
+      <BackToTop />
     </div>
   );
 }
