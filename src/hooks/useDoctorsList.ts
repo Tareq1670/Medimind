@@ -65,9 +65,11 @@ export function useDoctorsList(filter: DoctorFilter = {}) {
   const params = new URLSearchParams();
   if (filter.specialty) params.set("specialty", filter.specialty);
   if (filter.search) params.set("search", filter.search);
-  if (filter.minRating) params.set("minRating", String(filter.minRating));
-  if (filter.maxFee) params.set("maxFee", String(filter.maxFee));
+  if (filter.minRating !== undefined) params.set("minRating", String(filter.minRating));
+  if (filter.maxFee !== undefined) params.set("maxFee", String(filter.maxFee));
   if (filter.isVerified) params.set("verified", "true");
+  if (filter.sortBy) params.set("sortBy", filter.sortBy);
+  if (filter.sortOrder) params.set("sortOrder", filter.sortOrder);
   if (filter.page) params.set("page", String(filter.page));
   if (filter.limit) params.set("limit", String(filter.limit));
   const qs = params.toString();

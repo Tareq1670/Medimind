@@ -1,7 +1,37 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "@/lib/icon-map";
-import { cn } from "@/lib/utils";
+import { Pagination as HeroPagination } from "@heroui/react";
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+export function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex justify-center">
+      <HeroPagination
+        total={totalPages}
+        page={page}
+        onChange={onPageChange}
+        showControls
+        showShadow
+        color="primary"
+        size="md"
+        classNames={{
+          cursor: "bg-primary text-white font-semibold",
+          item: "text-slate-600 dark:text-slate-400",
+          prev: "text-slate-500 dark:text-slate-400",
+          next: "text-slate-500 dark:text-slate-400",
+        }}
+      />
+    </div>
+  );
+}
+
 
 interface PaginationProps {
   page: number;

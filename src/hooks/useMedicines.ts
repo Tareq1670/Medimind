@@ -24,9 +24,11 @@ export function useMedicines(filter: MedicineFilter = {}) {
   const params = new URLSearchParams();
   if (filter.category) params.set("category", filter.category);
   if (filter.search) params.set("search", filter.search);
-  if (filter.minPrice) params.set("minPrice", String(filter.minPrice));
-  if (filter.maxPrice) params.set("maxPrice", String(filter.maxPrice));
+  if (filter.minPrice !== undefined) params.set("minPrice", String(filter.minPrice));
+  if (filter.maxPrice !== undefined) params.set("maxPrice", String(filter.maxPrice));
   if (filter.isPrescriptionRequired !== undefined) params.set("prescription", String(filter.isPrescriptionRequired));
+  if (filter.sortBy) params.set("sortBy", filter.sortBy);
+  if (filter.sortOrder) params.set("sortOrder", filter.sortOrder);
   if (filter.page) params.set("page", String(filter.page));
   if (filter.limit) params.set("limit", String(filter.limit));
   const qs = params.toString();
