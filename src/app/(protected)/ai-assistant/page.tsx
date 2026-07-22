@@ -1,6 +1,6 @@
 "use client";
 
-import { useChatSessions, useChatMessages, useCreateChatSession, type ChatMessage } from "@/hooks/useChatSessions";
+import { useChatSessions, useChatMessages, useCreateChatSession, type ChatMessage, type ChatSession } from "@/hooks/useChatSessions";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getJwtToken, getApiBase } from "@/lib/api";
@@ -11,6 +11,14 @@ const QUICK_STARTS = [
   "What should I do for a persistent headache?",
   "Explain the difference between bacterial and viral infections",
 ];
+
+interface DisplayMessage {
+  key: string;
+  role: string;
+  content: string;
+  createdAt: string;
+  suggestedFollowUps?: string[];
+}
 
 export default function AIAssistantPage() {
   const { data: sessions, isLoading: sessionsLoading } = useChatSessions();
@@ -178,7 +186,7 @@ export default function AIAssistantPage() {
     return d.toLocaleDateString([], { month: "short", day: "numeric" });
   };
 
-  const sessionList = (sessions as Session[] | undefined) ?? [];
+  const sessionList = (sessions as ChatSession[] | undefined) ?? [];
 
   const displayMessages: DisplayMessage[] = messages && messages.length > 0
     ? (messages as ChatMessage[]).map((m) => ({
@@ -219,7 +227,7 @@ export default function AIAssistantPage() {
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
-                <span className="truncate block">{s.sessionTitle || s.title || "New Chat"}</span>
+                <span className="truncate block">{s.sessionTitle || "New Chat"}</span>
                 <span className="text-xs text-slate-400 dark:text-slate-500">{formatDate(s.updatedAt || s.createdAt)}</span>
               </button>
             ))

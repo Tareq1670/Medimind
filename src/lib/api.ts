@@ -1,4 +1,4 @@
-const getApiBase = () => {
+export const getApiBase = () => {
   // Server-side: use environment variable
   if (typeof window === "undefined") {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL;
