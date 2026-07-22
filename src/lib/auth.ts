@@ -3,27 +3,71 @@ import { jwt } from "better-auth/plugins";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { MongoClient } from "mongodb";
 
-const mongoUri = process.env.MONGODB_URI;
-const dbName = process.env.DB_NAME || "Medimind";
+const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
-const mongoClient = mongoUri ? new MongoClient(mongoUri) : null;
-const db = mongoClient?.db(dbName);
-
-const databaseConfig = db ? mongodbAdapter(db) : undefined;
-
-const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+const baseURL = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 const secret = process.env.BETTER_AUTH_SECRET;
 if (!secret) {
-  throw new Error(
-    "BETTER_AUTH_SECRET environment variable is required"
-  );
+  throw new Error("BETTER_AUTH_SECRET environment variable is required");
 }
+
+const mongoUri = process.env.MONGODB_URI;
+const dbName = process.env.DB_NAME || "Medimind";
+
+const globalForMongo = globalThis as unknown as {
+  _mongoClient?: MongoClient;
+};
+
+function getMongoClient(): MongoClient | null {
+  if (!mongoUri) {
+    if (isProduction) {
+      console.warn("[MediMind] MONGODB_URI not set on frontend - Better Auth will not persist sessions. Set MONGODB_URI and DB_NAME in Vercel frontend env.");
+    }
+    return null;
+  }
+  if (!globalForMongo._mongoClient) {
+    globalForMongo._mongoClient = new MongoClient(mongoUri, {
+      maxPoolSize: 5,
+      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 10000,
+    });
+  }
+  return globalForMongo._mongoClient;
+}
+
+const mongoClient = getMongoClient();
+const db = mongoClient ? mongoClient.db(dbName) : null;
+const databaseConfig = db ? mongodbAdapter(db) : undefined;
+
+const trustedOrigins = [baseURL];
+
+if (isProduction && process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== baseURL) {
+  trustedOrigins.push(process.env.NEXT_PUBLIC_APP_URL);
+}
+
+if (process.env.VERCEL_URL) {
+  trustedOrigins.push(`https://${process.env.VERCEL_URL}`);
+}
+
+if (process.env.VERCEL_BRANCH_URL) {
+  trustedOrigins.push(`https://${process.env.VERCEL_BRANCH_URL}`);
+}
+
+if (process.env.VERCEL_GIT_PREVIEW_URL) {
+  trustedOrigins.push(`https://${process.env.VERCEL_GIT_PREVIEW_URL}`);
+}
+
+if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith("https://")) {
+  trustedOrigins.push(process.env.NEXT_PUBLIC_APP_URL);
+}
+
+const uniqueTrustedOrigins = [...new Set(trustedOrigins)];
 
 export const auth = betterAuth({
   database: databaseConfig,
   baseURL,
-  trustedOrigins: [baseURL],
+  trustedOrigins: uniqueTrustedOrigins,
   secret,
 
   emailAndPassword: {

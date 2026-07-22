@@ -3,25 +3,7 @@
 import { useChatSessions, useChatMessages, useCreateChatSession, type ChatMessage } from "@/hooks/useChatSessions";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { getJwtToken } from "@/lib/api";
-
-const API_BASE = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/v1`;
-
-interface DisplayMessage {
-  key: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: string;
-  suggestedFollowUps?: string[];
-}
-
-interface Session {
-  _id: string;
-  sessionTitle?: string;
-  title?: string;
-  updatedAt: string;
-  createdAt: string;
-}
+import { getJwtToken, getApiBase } from "@/lib/api";
 
 const QUICK_STARTS = [
   "What are the common symptoms of diabetes?",
@@ -53,7 +35,8 @@ export default function AIAssistantPage() {
 
   const streamChat = useCallback(async (sessionId: string, message: string) => {
     const token = await getJwtToken();
-    const res = await fetch(`${API_BASE}/ai/chat`, {
+    const apiBase = getApiBase();
+    const res = await fetch(`${apiBase}/ai/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
