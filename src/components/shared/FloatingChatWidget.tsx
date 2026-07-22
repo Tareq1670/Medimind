@@ -3,18 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Bot, User, X, Send, Loader2 } from "@/lib/icon-map";
-
-const getApiBase = () => {
-  const url = process.env.NEXT_PUBLIC_API_URL;
-  if (url && typeof url === "string") return `${url.replace(/\/+$/, "")}/api/v1`;
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1") return "http://localhost:5000/api/v1";
-    return `https://medimind-backend.vercel.app/api/v1`;
-  }
-  return "http://localhost:5000/api/v1";
-};
-const API_BASE = getApiBase();
+import { getApiBase } from "@/lib/api";
 
 const SUGGESTED_PROMPTS = [
   { label: "🩺 Symptom Check", text: "I have a headache and fever for 2 days. What could it be?" },
@@ -216,7 +205,7 @@ export default function FloatingChatWidget() {
     let newFollowUps: string[] = [];
 
     try {
-      const res = await fetch(`${API_BASE}/ai/public-chat`, {
+      const res = await fetch(`${getApiBase()}/ai/public-chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: query, history }),
