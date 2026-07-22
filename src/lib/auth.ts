@@ -5,7 +5,18 @@ import { MongoClient } from "mongodb";
 
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
-const baseURL = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const baseURL = (() => {
+  if (process.env.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL.startsWith("https://")) {
+    return process.env.BETTER_AUTH_URL;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith("https://")) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
+})();
 
 const secret = process.env.BETTER_AUTH_SECRET;
 if (!secret) {
@@ -40,29 +51,32 @@ const mongoClient = getMongoClient();
 const db = mongoClient ? mongoClient.db(dbName) : null;
 const databaseConfig = db ? mongodbAdapter(db) : undefined;
 
-const trustedOrigins = [baseURL];
+const trustedOriginsSet = new Set<string>();
 
-if (isProduction && process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL !== baseURL) {
-  trustedOrigins.push(process.env.NEXT_PUBLIC_APP_URL);
-}
+const addOrigin = (url?: string) => {
+  if (url && url.startsWith("https://")) {
+    const cleanUrl = url.replace(/\/+$/, "");
+    trustedOriginsSet.add(cleanUrl);
+  }
+};
+
+addOrigin(baseURL);
+addOrigin(process.env.NEXT_PUBLIC_APP_URL);
+addOrigin(process.env.BETTER_AUTH_URL);
 
 if (process.env.VERCEL_URL) {
-  trustedOrigins.push(`https://${process.env.VERCEL_URL}`);
+  addOrigin(`https://${process.env.VERCEL_URL}`);
 }
 
 if (process.env.VERCEL_BRANCH_URL) {
-  trustedOrigins.push(`https://${process.env.VERCEL_BRANCH_URL}`);
+  addOrigin(`https://${process.env.VERCEL_BRANCH_URL}`);
 }
 
 if (process.env.VERCEL_GIT_PREVIEW_URL) {
-  trustedOrigins.push(`https://${process.env.VERCEL_GIT_PREVIEW_URL}`);
+  addOrigin(`https://${process.env.VERCEL_GIT_PREVIEW_URL}`);
 }
 
-if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith("https://")) {
-  trustedOrigins.push(process.env.NEXT_PUBLIC_APP_URL);
-}
-
-const uniqueTrustedOrigins = [...new Set(trustedOrigins)];
+const uniqueTrustedOrigins = Array.from(trustedOriginsSet);
 
 export const auth = betterAuth({
   database: databaseConfig,
@@ -129,5 +143,9 @@ export const auth = betterAuth({
     },
   },
   plugins: [jwt()],
+  advanced: {
+    cookiePrefix: "better-auth",
+    useSecureCookies: isProduction,
+  },
 });
 

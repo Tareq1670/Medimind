@@ -1,16 +1,27 @@
 const getApiBase = () => {
+  // Server-side: use environment variable
+  if (typeof window === "undefined") {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (baseUrl && typeof baseUrl === "string" && baseUrl.length > 0) {
+      return `${baseUrl.replace(/\/+$/, "")}/api/v1`;
+    }
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}/api/v1`;
+    }
+    return "http://localhost:5000/api/v1";
+  }
+
+  // Client-side: use environment variable or derive from window.location
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (baseUrl && typeof baseUrl === "string" && baseUrl.length > 0) {
     return `${baseUrl.replace(/\/+$/, "")}/api/v1`;
   }
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
-      return "http://localhost:5000/api/v1";
-    }
-    return `${window.location.origin.replace(/^http:/, "https:")}/api/v1`;
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return "http://localhost:5000/api/v1";
   }
-  return "http://localhost:5000/api/v1";
+  const protocol = window.location.protocol;
+  return `${protocol}//${window.location.host}/api/v1`;
 };
 
 export function extractPaginatedData<T>(raw: unknown): {

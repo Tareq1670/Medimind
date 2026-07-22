@@ -46,18 +46,37 @@ export async function middleware(req: NextRequest) {
   );
   if (!matchedPrefix) return NextResponse.next();
 
-  // Try session_data cookie first (contains the JWT with user/session data)
-  // then fall back to session_token cookie (for backwards compat)
-  const sessionDataCookie =
-    req.cookies.get("__Secure-better-auth.session_data")?.value ||
-    req.cookies.get("better-auth.session_data")?.value;
+  // In production (Vercel), Better Auth uses __Secure- prefix for cookies
+  // In development, it uses better-auth. prefix
+  const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
-  const sessionTokenCookie =
-    req.cookies.get("__Secure-better-auth.session_token")?.value ||
+  const sessionDataCookieName = isProduction
+    ? "__Secure-better-auth.session_data"
+    : "better-auth.session_data";
+
+  const sessionTokenCookieName = isProduction
+    ? "__Secure-better-auth.session_token"
+    : "better-auth.session_token";
+
+  // Try session_data cookie first (contains JWT when cookieCache.strategy is "jwt")
+  // then fall back to session_token cookie
+  const sessionDataCookie = req.cookies.get(sessionDataCookieName)?.value;
+  const sessionTokenCookie = req.cookies.get(sessionTokenCookieName)?.value;
+
+  // Also check for legacy cookie names without prefix
+  const legacySessionDataCookie =
+    req.cookies.get("better-auth.session_data")?.value;
+  const legacySessionTokenCookie =
     req.cookies.get("better-auth.session_token")?.value;
 
-  // If neither cookie exists, redirect to login
-  if (!sessionDataCookie && !sessionTokenCookie) {
+  const cookieValue =
+    sessionDataCookie ||
+    sessionTokenCookie ||
+    legacySessionDataCookie ||
+    legacySessionTokenCookie;
+
+  // If no session cookie exists, redirect to login
+  if (!cookieValue) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
@@ -66,22 +85,11 @@ export async function middleware(req: NextRequest) {
   let role: string | null = null;
 
   // session_data cookie is a JWT when cookieCache.strategy is "jwt"
-  if (sessionDataCookie) {
-    const payload = decodeJwtPayload(sessionDataCookie);
-    if (payload) {
-      // Better Auth JWT cache structure: { session, user, updatedAt, version }
-      const user = payload.user as Record<string, unknown> | undefined;
-      role = (user?.role as string) || (payload.role as string) || null;
-    }
-  }
-
-  // Fallback: try session_token (might be a JWT if JWT plugin is used)
-  if (!role && sessionTokenCookie) {
-    const payload = decodeJwtPayload(sessionTokenCookie);
-    if (payload) {
-      const user = payload.user as Record<string, unknown> | undefined;
-      role = (user?.role as string) || (payload.role as string) || null;
-    }
+  const payload = decodeJwtPayload(cookieValue);
+  if (payload) {
+    // Better Auth JWT cache structure: { session, user, updatedAt, version }
+    const user = payload.user as Record<string, unknown> | undefined;
+    role = (user?.role as string) || (payload.role as string) || null;
   }
 
   if (!role) {
