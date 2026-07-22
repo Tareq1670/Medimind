@@ -5,6 +5,7 @@ export interface Blog {
   excerpt?: string;
   tags: string[];
   coverImage?: string;
+  slug?: string;
   authorId: PopulatedUser | string;
   author?: PopulatedUser;
   status: "Draft" | "Published" | "Archived";
@@ -43,6 +44,7 @@ export interface BlogFilter {
 
 export interface LandingBlog {
   id: string;
+  slug: string;
   title: string;
   excerpt: string;
   tags: string[];

@@ -1,23 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { get, post, patch, deleteRequest } from "@/lib/api";
+import { get, post, patch, deleteRequest, ApiError, extractPaginatedData } from "@/lib/api";
 import toast from "react-hot-toast";
 import type { Medicine, MedicineFilter, PaginatedResponse, MedicineFormData } from "@/types";
 
-function extractPaginatedData<T>(raw: unknown): {
-  data: T[];
-  pagination?: { page: number; totalPages: number; total: number };
-} {
-  if (raw && typeof raw === "object") {
-    const r = raw as Record<string, unknown>;
-    if (Array.isArray(r.data)) {
-      return {
-        data: r.data as T[],
-        pagination: r.pagination as { page: number; totalPages: number; total: number } | undefined,
-      };
+function formatError(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.details && error.details.length > 0) {
+      return error.details.map((d) => `${d.field}: ${d.message}`).join("; ");
     }
+    return error.message;
   }
-  if (Array.isArray(raw)) return { data: raw as T[] };
-  return { data: [] };
+  if (error instanceof Error) return error.message;
+  return "An unexpected error occurred";
 }
 
 export function useMedicines(filter: MedicineFilter = {}) {
@@ -29,6 +23,7 @@ export function useMedicines(filter: MedicineFilter = {}) {
   if (filter.isPrescriptionRequired !== undefined) params.set("prescription", String(filter.isPrescriptionRequired));
   if (filter.sortBy) params.set("sortBy", filter.sortBy);
   if (filter.sortOrder) params.set("sortOrder", filter.sortOrder);
+  if (filter.stock) params.set("stock", filter.stock);
   if (filter.page) params.set("page", String(filter.page));
   if (filter.limit) params.set("limit", String(filter.limit));
   const qs = params.toString();
@@ -63,7 +58,7 @@ export function useCreateMedicine() {
       qc.invalidateQueries({ queryKey: ["medicines"] });
       toast.success("Medicine created");
     },
-    onError: () => toast.error("Failed to create medicine"),
+    onError: (error: unknown) => toast.error(formatError(error)),
   });
 }
 
@@ -76,7 +71,7 @@ export function useUpdateMedicine() {
       qc.invalidateQueries({ queryKey: ["medicines"] });
       toast.success("Medicine updated");
     },
-    onError: () => toast.error("Failed to update medicine"),
+    onError: (error: unknown) => toast.error(formatError(error)),
   });
 }
 
@@ -88,6 +83,6 @@ export function useDeleteMedicine() {
       qc.invalidateQueries({ queryKey: ["medicines"] });
       toast.success("Medicine deleted");
     },
-    onError: () => toast.error("Failed to delete medicine"),
+    onError: (error: unknown) => toast.error(formatError(error)),
   });
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Tags, Sparkles } from "@/lib/icon-map";
+import Link from "next/link";
+import { FileText, Tags, Sparkles, ArrowRight } from "@/lib/icon-map";
 
 const engines = [
   {
@@ -19,22 +20,44 @@ const engines = [
     gradient: "from-[#14B8A6] to-[#0D9488]",
     bgGradient:
       "from-[#14B8A6]/5 to-[#0D9488]/5 dark:from-[#14B8A6]/10 dark:to-[#0D9488]/5",
+    href: "/report-analysis",
+    cta: "Analyze Reports",
+  },
+  {
+    title: "AI Symptom Analyzer",
+    subtitle: "Natural Language Medical Intelligence",
+    description:
+      "Understands your symptoms in plain language and cross-references with clinical datasets to provide preliminary assessments, urgency levels, and personalized recommendations.",
+    icon: Tags,
+    capabilities: [
+      "Natural Language Processing",
+      "Urgency Level Assessment",
+      "Condition Probability Mapping",
+      "Personalized Health Insights",
+    ],
+    gradient: "from-[#2563EB] to-[#1D4ED8]",
+    bgGradient:
+      "from-[#2563EB]/5 to-[#1D4ED8]/5 dark:from-[#2563EB]/10 dark:to-[#1D4ED8]/5",
+    href: "/symptom-checker",
+    cta: "Check Symptoms",
   },
   {
     title: "AI Content Intelligence",
     subtitle: "Clinical Data Tagging & Classification Engine",
     description:
       "Automatically categorizes medical content using hierarchical ontology mapping. Powers search, recommendation, and clinical decision support across the entire platform ecosystem.",
-    icon: Tags,
+    icon: Sparkles,
     capabilities: [
       "ICD-11 Auto-Coding",
       "Semantic Search Indexing",
       "Drug-Drug Interaction Alerts",
-      "Personalized Health Insights",
+      "Automated Content Curation",
     ],
-    gradient: "from-[#2563EB] to-[#1D4ED8]",
+    gradient: "from-[#14B8A6] to-[#2563EB]",
     bgGradient:
-      "from-[#2563EB]/5 to-[#1D4ED8]/5 dark:from-[#2563EB]/10 dark:to-[#1D4ED8]/5",
+      "from-[#14B8A6]/5 to-[#2563EB]/5 dark:from-[#14B8A6]/10 dark:to-[#2563EB]/5",
+    href: "/medicines",
+    cta: "Explore Medicines",
   },
 ];
 
@@ -57,7 +80,7 @@ export function AIEngineSpotlight() {
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {engines.map((engine) => (
             <motion.div
               key={engine.title}
@@ -99,6 +122,12 @@ export function AIEngineSpotlight() {
                     </div>
                   ))}
                 </div>
+                <Link
+                  href={engine.href}
+                  className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-[var(--radius-button)] bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {engine.cta} <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
             </motion.div>
           ))}

@@ -1,24 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { get, post, patch, deleteRequest } from "@/lib/api";
+import { get, post, patch, deleteRequest, extractPaginatedData } from "@/lib/api";
 import toast from "react-hot-toast";
 import type { Blog, BlogFilter, PaginatedResponse, LandingBlog, BlogFormData } from "@/types";
-
-function extractPaginatedData<T>(raw: unknown): {
-  data: T[];
-  pagination?: { page: number; totalPages: number; total: number };
-} {
-  if (raw && typeof raw === "object") {
-    const r = raw as Record<string, unknown>;
-    if (Array.isArray(r.data)) {
-      return {
-        data: r.data as T[],
-        pagination: r.pagination as { page: number; totalPages: number; total: number } | undefined,
-      };
-    }
-  }
-  if (Array.isArray(raw)) return { data: raw as T[] };
-  return { data: [] };
-}
 
 function getAuthorInfo(raw: Blog): { name: string; image: string } {
   if (raw.author && typeof raw.author === "object") {
@@ -42,6 +25,7 @@ function normalizeBlog(raw: Blog): LandingBlog {
   const author = getAuthorInfo(raw);
   return {
     id: raw._id,
+    slug: raw.slug || raw._id,
     title: raw.title,
     excerpt: raw.excerpt || raw.content?.slice(0, 160) || "",
     tags: raw.tags,
@@ -91,11 +75,17 @@ export function useBlog(id: string) {
   });
 }
 
-export function useBlogDetail(id: string) {
+export function useBlogDetail(slugOrId: string) {
   return useQuery({
-    queryKey: ["blog-detail", id],
-    queryFn: () => get<Blog>(`/blogs/${id}`),
-    enabled: !!id,
+    queryKey: ["blog-detail", slugOrId],
+    queryFn: async () => {
+      try {
+        return await get<Blog>(`/blogs/slug/${slugOrId}`);
+      } catch {
+        return get<Blog>(`/blogs/${slugOrId}`);
+      }
+    },
+    enabled: !!slugOrId,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });

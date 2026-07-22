@@ -2,18 +2,23 @@
 
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useStats } from "@/hooks/useStats";
+import { useHealthInsights } from "@/hooks/useAI";
+import { useState } from "react";
 import Link from "next/link";
+import { Skeleton } from "@heroui/react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area,
 } from "recharts";
+import toast from "react-hot-toast";
+import { useChartTheme } from "@/lib/chart-theme";
 
 const actions = {
   user: [
     { label: "Log Health Record", href: "/health-records", icon: "📋" },
     { label: "Chat with AI", href: "/ai-assistant", icon: "🤖" },
     { label: "Analyze Report", href: "/report-analysis", icon: "📄" },
-    { label: "Browse Doctors", href: "/doctors", icon: "👨‍⚕️" },
+    { label: "AI Recommendations", href: "/recommendations", icon: "💡" },
   ],
   doctor: [
     { label: "My Patients", href: "/patients", icon: "👥" },
@@ -41,15 +46,115 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 
 function SkeletonCard() {
   return (
-    <div className="card-standard p-5 animate-pulse">
-      <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
-      <div className="h-8 w-16 bg-slate-200 dark:bg-slate-700 rounded mt-3" />
+    <div className="card-standard p-5 space-y-3">
+      <Skeleton className="h-3 w-24 rounded-lg" />
+      <Skeleton className="h-8 w-16 rounded-lg" />
+    </div>
+  );
+}
+
+function HealthInsightsCard() {
+  const { user } = useAuthSession();
+  const getInsights = useHealthInsights();
+  const [insights, setInsights] = useState<Awaited<ReturnType<typeof getInsights.mutateAsync>> | null>(null);
+
+  const handleGenerate = async () => {
+    try {
+      const result = await getInsights.mutateAsync();
+      setInsights(result);
+    } catch {
+      toast.error("Failed to generate insights");
+    }
+  };
+
+  if (!user || user.role !== "user") return null;
+
+  return (
+    <div className="card-standard p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+          <span className="text-lg">🧠</span> AI Health Insights
+        </h3>
+        <button
+          onClick={handleGenerate}
+          disabled={getInsights.isPending}
+          className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 disabled:opacity-50 transition-colors"
+        >
+          {getInsights.isPending ? "Analyzing..." : insights ? "Refresh Insights" : "Get Insights"}
+        </button>
+      </div>
+
+      {!insights && !getInsights.isPending && (
+        <p className="text-sm text-slate-400 dark:text-slate-500">
+          Click &quot;Get Insights&quot; to analyze your health records and receive personalized AI-powered recommendations.
+        </p>
+      )}
+
+      {getInsights.isPending && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-4 w-full rounded-lg" />)}
+        </div>
+      )}
+
+      {insights && (
+        <div className="space-y-4">
+          {insights.overallAssessment && (
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{insights.overallAssessment}</p>
+          )}
+
+          {insights.keyTrends?.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Key Trends</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {insights.keyTrends.slice(0, 4).map((trend, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <span className={trend.direction === "improving" ? "text-green-500" : trend.direction === "declining" ? "text-red-500" : "text-slate-400"}>
+                      {trend.direction === "improving" ? "↑" : trend.direction === "declining" ? "↓" : "→"}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">{trend.metric}</span>
+                    <span className="text-slate-400 text-xs">{trend.insight}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {insights.personalizedRecommendations?.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Recommendations</h4>
+              <ul className="space-y-1">
+                {insights.personalizedRecommendations.slice(0, 3).map((rec, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="text-primary mt-0.5">•</span>
+                    {rec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {insights.areasNeedingAttention?.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-2">Needs Attention</h4>
+              <ul className="space-y-1">
+                {insights.areasNeedingAttention.slice(0, 3).map((area, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <span className="text-amber-500 mt-0.5">⚠</span>
+                    {area}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 function UserDashboard() {
   const { data, isLoading } = useStats("user");
+  const chart = useChartTheme();
 
   if (isLoading) return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -67,15 +172,17 @@ function UserDashboard() {
         <StatCard label="Active Sessions" value={stats?.recentActivity?.length ?? 0} sub="This month" />
       </div>
 
+      <HealthInsightsCard />
+
       {stats?.vitalsTrend && stats.vitalsTrend.length > 0 && (
         <div className="card-standard p-5">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Vitals Trend</h3>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={stats.vitalsTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke={chart.gridColor} />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: chart.tickColor }} />
+              <YAxis tick={{ fontSize: 12, fill: chart.tickColor }} />
+              <Tooltip contentStyle={{ background: chart.tooltipBg, border: `1px solid ${chart.tooltipBorder}`, borderRadius: "8px", color: chart.tooltipText }} />
               <Area type="monotone" dataKey="value" stroke="#2563EB" fill="#2563EB" fillOpacity={0.1} />
             </AreaChart>
           </ResponsiveContainer>
@@ -90,9 +197,9 @@ function UserDashboard() {
               <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{a.label}</p>
-                  <p className="text-xs text-slate-400">{a.date}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">{a.date}</p>
                 </div>
-                <span className="text-sm text-slate-500">{a.value}</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400">{a.value}</span>
               </div>
             ))}
           </div>
@@ -127,6 +234,7 @@ function DoctorDashboard() {
 
 function AdminDashboard() {
   const { data, isLoading } = useStats("admin");
+  const chart = useChartTheme();
 
   if (isLoading) return (
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -152,10 +260,10 @@ function AdminDashboard() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">User Growth</h3>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={stats.userGrowth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.gridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <YAxis tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <Tooltip contentStyle={{ background: chart.tooltipBg, border: `1px solid ${chart.tooltipBorder}`, borderRadius: "8px", color: chart.tooltipText }} />
                 <Line type="monotone" dataKey="count" stroke="#2563EB" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -166,10 +274,10 @@ function AdminDashboard() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">AI Usage</h3>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={stats.aiUsage}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.gridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <YAxis tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <Tooltip contentStyle={{ background: chart.tooltipBg, border: `1px solid ${chart.tooltipBorder}`, borderRadius: "8px", color: chart.tooltipText }} />
                 <Bar dataKey="count" fill="#14B8A6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -218,7 +326,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         {quickActions.map((a) => (
           <Link
             key={a.href}

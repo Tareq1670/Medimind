@@ -7,7 +7,6 @@ export const doctorService = {
     const params = new URLSearchParams();
     if (filter?.specialty) params.set("specialty", filter.specialty);
     if (filter?.search) params.set("search", filter.search);
-    if (filter?.minRating) params.set("minRating", String(filter.minRating));
     if (filter?.maxFee) params.set("maxFee", String(filter.maxFee));
     if (filter?.isVerified) params.set("verified", "true");
     if (filter?.sortBy) params.set("sortBy", filter.sortBy);

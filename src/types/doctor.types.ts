@@ -38,7 +38,6 @@ export interface DaySchedule {
 export interface DoctorFilter {
   specialty?: string;
   search?: string;
-  minRating?: number;
   maxFee?: number;
   isVerified?: boolean;
   sortBy?: "name" | "rating" | "consultationFee" | "experienceYears";

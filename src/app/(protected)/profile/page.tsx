@@ -3,15 +3,19 @@
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { imageUploader } from "@/lib/imageUploader";
 import { patch } from "@/lib/api";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { ProfileSchema, type ProfileInput } from "@/lib/validation";
+import { FieldError } from "@/components/shared";
 
 export default function ProfilePage() {
   const { user, invalidateSession } = useAuthSession();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof ProfileInput, string>>>({});
 
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -19,7 +23,23 @@ export default function ProfilePage() {
     bloodGroup: user?.bloodGroup || "",
   });
 
+  const validate = () => {
+    const result = ProfileSchema.safeParse(form);
+    if (!result.success) {
+      const fieldErrors: Partial<Record<keyof ProfileInput, string>> = {};
+      result.error.issues.forEach((issue) => {
+        const key = issue.path[0] as keyof ProfileInput;
+        fieldErrors[key] = issue.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validate()) return;
     setSaving(true);
     try {
       await authClient.updateUser({ name: form.name });
@@ -58,8 +78,7 @@ export default function ProfilePage() {
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
               {user?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.image} alt="" className="w-full h-full object-cover" />
+                <Image src={user.image} alt="" fill className="object-cover" />
               ) : (
                 user?.name?.charAt(0)?.toUpperCase() || "U"
               )}
@@ -75,7 +94,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <p className="text-lg font-semibold text-slate-900 dark:text-white">{user?.name}</p>
-            <p className="text-sm text-slate-500">{user?.email}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
             <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary capitalize">
               {user?.role}
             </span>
@@ -91,9 +110,11 @@ export default function ProfilePage() {
           <input
             type="text"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => { setForm({ ...form, name: e.target.value }); setErrors({ ...errors, name: undefined }); }}
             className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            aria-invalid={!!errors.name}
           />
+          <FieldError message={errors.name} />
         </div>
 
         <div>

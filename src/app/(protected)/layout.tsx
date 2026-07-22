@@ -8,6 +8,7 @@ import Link from "next/link";
 import { authorizeRoute } from "@/lib/route-guard";
 import { PROTECTED_ROUTES } from "@/constants";
 import { Home, Menu } from "@/lib/icon-map";
+import { ErrorBoundary } from "@/components/shared";
 
 const routeRoleMap = PROTECTED_ROUTES.ROLE_MAP;
 
@@ -85,6 +86,8 @@ export default function ProtectedLayout({
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+            aria-label="Open navigation menu"
+            aria-expanded={sidebarOpen}
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -96,8 +99,8 @@ export default function ProtectedLayout({
             Home
           </Link>
         </header>
-        <main className="flex-1 overflow-y-auto lg:pt-0 pt-14">
-          {children}
+        <main id="main-content" className="flex-1 overflow-y-auto lg:pt-0 pt-14">
+          <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>
     </div>

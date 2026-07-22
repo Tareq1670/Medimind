@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useMedicine } from "@/hooks/useMedicines";
 import { StarRating, LoadingSpinner } from "@/components/shared";
 import { Pill, ArrowRight, Shield, Clock, ChevronLeft } from "@/lib/icon-map";
@@ -56,11 +57,12 @@ export default function MedicineDetailPage({ params }: { params: Promise<{ id: s
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2">
           <div className="card-standard overflow-hidden">
-            <div className="aspect-square bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-8">
-              <img
+            <div className="relative aspect-square bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-8">
+              <Image
                 src={medicine.image || "https://i.ibb.co/n610Bc4/paracetamol.jpg"}
                 alt={medicine.name}
-                className="w-full h-full object-contain"
+                fill
+                className="object-contain"
               />
             </div>
           </div>

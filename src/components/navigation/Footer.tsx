@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { SVGProps } from "react";
 import {
@@ -14,6 +16,7 @@ import {
   Scale,
   MailQuestion,
 } from "@/lib/icon-map";
+import { ThemeToggle } from "@/components/landing/BackToTop";
 
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -190,10 +193,13 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
-          <p className="text-sm text-center text-slate-500 dark:text-slate-400">
-            &copy; {currentYear} MediMind. All rights reserved.{" "}
-            <span className="hidden sm:inline">Built for modern clinical intelligence.</span>
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-center sm:text-left text-slate-500 dark:text-slate-400">
+              &copy; {currentYear} MediMind. All rights reserved.{" "}
+              <span className="hidden sm:inline">Built for modern clinical intelligence.</span>
+            </p>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </footer>

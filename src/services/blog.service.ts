@@ -8,6 +8,7 @@ function normalizeBlog(raw: Blog): LandingBlog {
     : { name: "Unknown", image: "https://i.ibb.co/n610Bc4/paracetamol.jpg" };
   return {
     id: raw._id,
+    slug: raw.slug || raw._id,
     title: raw.title,
     excerpt: raw.excerpt || raw.content?.slice(0, 160) || "",
     tags: raw.tags,

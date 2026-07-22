@@ -1,10 +1,12 @@
 "use client";
 
 import { useAnalytics } from "@/hooks/useStats";
+import { Skeleton } from "@heroui/react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area,
 } from "recharts";
+import { useChartTheme } from "@/lib/chart-theme";
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -17,15 +19,16 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 export default function AnalyticsPage() {
   const { data: stats, isLoading } = useAnalytics();
+  const chart = useChartTheme();
 
   if (isLoading) {
     return (
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="card-standard p-5 animate-pulse">
-              <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
-              <div className="h-8 w-12 bg-slate-200 dark:bg-slate-700 rounded mt-3" />
+            <div key={i} className="card-standard p-5 space-y-3">
+              <Skeleton className="h-3 w-20 rounded-lg" />
+              <Skeleton className="h-8 w-12 rounded-lg" />
             </div>
           ))}
         </div>
@@ -54,10 +57,10 @@ export default function AnalyticsPage() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">User Growth</h3>
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={stats.userGrowth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.gridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <YAxis tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <Tooltip contentStyle={{ background: chart.tooltipBg, border: `1px solid ${chart.tooltipBorder}`, borderRadius: "8px", color: chart.tooltipText }} />
                 <Area type="monotone" dataKey="count" stroke="#2563EB" fill="#2563EB" fillOpacity={0.1} />
               </AreaChart>
             </ResponsiveContainer>
@@ -69,10 +72,10 @@ export default function AnalyticsPage() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Content Growth</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={stats.contentGrowth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.gridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <YAxis tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <Tooltip contentStyle={{ background: chart.tooltipBg, border: `1px solid ${chart.tooltipBorder}`, borderRadius: "8px", color: chart.tooltipText }} />
                 <Bar dataKey="medicines" fill="#2563EB" radius={[4, 4, 0, 0]} name="Medicines" />
                 <Bar dataKey="blogs" fill="#14B8A6" radius={[4, 4, 0, 0]} name="Blogs" />
               </BarChart>
@@ -85,10 +88,10 @@ export default function AnalyticsPage() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">AI Usage</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={stats.aiUsage}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.gridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <YAxis tick={{ fontSize: 12, fill: chart.tickColor }} />
+                <Tooltip contentStyle={{ background: chart.tooltipBg, border: `1px solid ${chart.tooltipBorder}`, borderRadius: "8px", color: chart.tooltipText }} />
                 <Line type="monotone" dataKey="count" stroke="#7C3AED" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>

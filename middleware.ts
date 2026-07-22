@@ -23,15 +23,16 @@ const protectedPrefixes: RouteRoles = {
   "/blogs/manage": ["admin"],
   "/doctors/manage": ["admin"],
   "/conditions/manage": ["admin"],
-  "/records": ["user", "doctor", "admin"],
   "/messages": ["doctor"],
+  "/recommendations": ["user"],
 };
 
-function getTokenPayload(token: string): Record<string, unknown> | null {
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    return JSON.parse(atob(parts[1]));
+    const decoded = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(decoded);
   } catch {
     return null;
   }
@@ -45,28 +46,49 @@ export async function middleware(req: NextRequest) {
   );
   if (!matchedPrefix) return NextResponse.next();
 
-  const sessionCookie =
-    req.cookies.get("better-auth.session_token")?.value ||
-    req.cookies.get("__Secure-better-auth.session_token")?.value;
+  // Try session_data cookie first (contains the JWT with user/session data)
+  // then fall back to session_token cookie (for backwards compat)
+  const sessionDataCookie =
+    req.cookies.get("__Secure-better-auth.session_data")?.value ||
+    req.cookies.get("better-auth.session_data")?.value;
 
-  if (!sessionCookie) {
+  const sessionTokenCookie =
+    req.cookies.get("__Secure-better-auth.session_token")?.value ||
+    req.cookies.get("better-auth.session_token")?.value;
+
+  // If neither cookie exists, redirect to login
+  if (!sessionDataCookie && !sessionTokenCookie) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  const payload = getTokenPayload(sessionCookie);
-  if (!payload) {
+  let role: string | null = null;
+
+  // session_data cookie is a JWT when cookieCache.strategy is "jwt"
+  if (sessionDataCookie) {
+    const payload = decodeJwtPayload(sessionDataCookie);
+    if (payload) {
+      // Better Auth JWT cache structure: { session, user, updatedAt, version }
+      const user = payload.user as Record<string, unknown> | undefined;
+      role = (user?.role as string) || (payload.role as string) || null;
+    }
+  }
+
+  // Fallback: try session_token (might be a JWT if JWT plugin is used)
+  if (!role && sessionTokenCookie) {
+    const payload = decodeJwtPayload(sessionTokenCookie);
+    if (payload) {
+      const user = payload.user as Record<string, unknown> | undefined;
+      role = (user?.role as string) || (payload.role as string) || null;
+    }
+  }
+
+  if (!role) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     const res = NextResponse.redirect(loginUrl);
-    res.cookies.delete("better-auth.session_token");
     return res;
-  }
-
-  const role = (payload.role as string) || (payload.data as Record<string, unknown>)?.role as string;
-  if (!role) {
-    return NextResponse.next();
   }
 
   const allowedRoles = protectedPrefixes[matchedPrefix];

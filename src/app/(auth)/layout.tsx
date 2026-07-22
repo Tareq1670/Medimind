@@ -1,3 +1,15 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Login or Register",
+  description:
+    "Access your MediMind account to manage health records, chat with AI, analyze reports, and more.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 export default function AuthLayout({
   children,
 }: {

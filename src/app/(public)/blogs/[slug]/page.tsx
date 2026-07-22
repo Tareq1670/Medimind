@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useBlogDetail } from "@/hooks/useBlogsList";
 import { LoadingSpinner } from "@/components/shared";
 import { BookOpen, ChevronLeft, User, Clock, Eye } from "@/lib/icon-map";
@@ -52,7 +53,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
           {blog.coverImage && (
             <div className="card-standard overflow-hidden mb-8">
               <div className="relative h-64 md:h-80 bg-gradient-to-br from-primary/10 to-secondary/10">
-                <img src={blog.coverImage} alt={blog.title} className="w-full h-full object-cover" />
+                <Image src={blog.coverImage} alt={blog.title} fill className="object-cover" />
               </div>
             </div>
           )}

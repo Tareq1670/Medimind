@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { get, post, patch, deleteRequest } from "@/lib/api";
+import { get, post, patch, deleteRequest, extractPaginatedData } from "@/lib/api";
 import toast from "react-hot-toast";
 import type { Doctor, DoctorFilter, PaginatedResponse, DoctorFormData } from "@/types";
 
@@ -44,28 +44,10 @@ function normalizeDoctor(raw: RawDoctor): Doctor {
   };
 }
 
-function extractPaginatedData<T>(raw: unknown): {
-  data: T[];
-  pagination?: { page: number; totalPages: number; total: number };
-} {
-  if (raw && typeof raw === "object") {
-    const r = raw as Record<string, unknown>;
-    if (Array.isArray(r.data)) {
-      return {
-        data: r.data as T[],
-        pagination: r.pagination as { page: number; totalPages: number; total: number } | undefined,
-      };
-    }
-  }
-  if (Array.isArray(raw)) return { data: raw as T[] };
-  return { data: [] };
-}
-
 export function useDoctorsList(filter: DoctorFilter = {}) {
   const params = new URLSearchParams();
   if (filter.specialty) params.set("specialty", filter.specialty);
   if (filter.search) params.set("search", filter.search);
-  if (filter.minRating !== undefined) params.set("minRating", String(filter.minRating));
   if (filter.maxFee !== undefined) params.set("maxFee", String(filter.maxFee));
   if (filter.isVerified) params.set("verified", "true");
   if (filter.sortBy) params.set("sortBy", filter.sortBy);
@@ -137,6 +119,20 @@ export function useDeleteDoctor() {
       toast.success("Doctor deleted");
     },
     onError: () => toast.error("Failed to delete doctor"),
+  });
+}
+
+export function useVerifyDoctor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isVerified }: { id: string; isVerified: boolean }) =>
+      patch(`/doctors/${id}`, { isVerified }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["doctors-list"] });
+      qc.invalidateQueries({ queryKey: ["all-doctors"] });
+      toast.success("Doctor verification updated");
+    },
+    onError: () => toast.error("Failed to update verification"),
   });
 }
 

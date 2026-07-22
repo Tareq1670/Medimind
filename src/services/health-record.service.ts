@@ -1,4 +1,4 @@
-import { get, post, deleteRequest } from "@/lib/api";
+import { get, post, put, deleteRequest } from "@/lib/api";
 import { API_ENDPOINTS } from "@/constants";
 
 export interface HealthRecord {
@@ -21,11 +21,14 @@ export interface HealthRecordFormData {
 
 export const healthRecordService = {
   getAll: () =>
-    get<{ data: HealthRecord[] }>(API_ENDPOINTS.HEALTH_RECORDS),
+    get<{ data: HealthRecord[] }>(`${API_ENDPOINTS.HEALTH_RECORDS}/me`),
 
   create: (data: HealthRecordFormData) =>
     post<HealthRecord>(API_ENDPOINTS.HEALTH_RECORDS, data),
 
-  delete: (id: string) =>
-    deleteRequest(`${API_ENDPOINTS.HEALTH_RECORDS}/${id}`),
+  update: (data: HealthRecordFormData) =>
+    put<HealthRecord>(`${API_ENDPOINTS.HEALTH_RECORDS}/me`, data),
+
+  delete: () =>
+    deleteRequest(`${API_ENDPOINTS.HEALTH_RECORDS}/me`),
 };

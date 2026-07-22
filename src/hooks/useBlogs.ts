@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { get } from "@/lib/api";
+import { get, extractArrayData } from "@/lib/api";
 import { latestBlogs } from "@/components/home/data";
 import type { LandingBlog } from "@/components/home/data";
 
@@ -44,22 +44,13 @@ function normalizeBlog(raw: BlogFromApi): LandingBlog {
   };
 }
 
-function extractData<T>(raw: unknown, fallback: T[]): T[] {
-  if (Array.isArray(raw)) return raw;
-  if (raw && typeof raw === "object" && "data" in raw) {
-    const maybe = (raw as Record<string, unknown>).data;
-    if (Array.isArray(maybe)) return maybe as T[];
-  }
-  return fallback;
-}
-
 export function useBlogs() {
   return useQuery({
     queryKey: ["landing", "latest-blogs"],
     queryFn: async () => {
       try {
         const result = await get<unknown>("/blogs?limit=3&status=Published");
-        const raw = extractData<BlogFromApi>(result, []);
+        const raw = extractArrayData<BlogFromApi>(result, []);
         return raw.length ? raw.map(normalizeBlog) : latestBlogs;
       } catch {
         return latestBlogs;

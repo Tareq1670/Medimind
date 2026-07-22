@@ -11,12 +11,6 @@ const db = mongoClient?.db(dbName);
 
 const databaseConfig = db ? mongodbAdapter(db) : undefined;
 
-// Drop stale JWKS entries that were encrypted with a previous BETTER_AUTH_SECRET.
-// Safe to run on every cold start — Better Auth regenerates keys immediately.
-if (db) {
-  db.collection("jwks").deleteMany({}).catch(() => {});
-}
-
 const baseURL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 
 const secret = process.env.BETTER_AUTH_SECRET;
@@ -70,23 +64,8 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user, ctx) => {
-          const validRoles = ["user", "doctor", "admin"];
-          let role = ctx?.body?.role;
-
-          if (!role || !validRoles.includes(role)) {
-            try {
-              const cookie = ctx?.request?.headers?.get("cookie");
-              if (cookie) {
-                const match = cookie.match(/medimind_pending_role=([^;]+)/);
-                const cookieRole: string = match ? match[1] : "";
-                if (validRoles.includes(cookieRole)) {
-                  role = cookieRole;
-                }
-              }
-            } catch {
-              /* cookie read failed — fall through to default */
-            }
-          }
+          const validRoles = ["user", "doctor"];
+          const role = ctx?.body?.role;
           return {
             data: {
               ...user,

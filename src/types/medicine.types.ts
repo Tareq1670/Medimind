@@ -11,8 +11,8 @@ export interface Medicine {
   category: string;
   isPrescriptionRequired: boolean;
   image?: string;
-  rating: number;
-  reviewCount: number;
+  rating?: number;
+  reviewCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,8 +45,9 @@ export interface MedicineFilter {
   isPrescriptionRequired?: boolean;
   minPrice?: number;
   maxPrice?: number;
-  sortBy?: "name" | "price" | "rating" | "createdAt";
+  sortBy?: "name" | "price" | "createdAt" | "stockQuantity";
   sortOrder?: "asc" | "desc";
+  stock?: "low" | "out";
   page?: number;
   limit?: number;
 }

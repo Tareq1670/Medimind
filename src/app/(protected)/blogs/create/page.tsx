@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useCreateBlog } from "@/hooks/useBlogsList";
+import { useAiGenerateBlog, useAiClassifyTags } from "@/hooks/useAI";
 import { imageUploader } from "@/lib/imageUploader";
 import { Sparkles, Loader2, X } from "@/lib/icon-map";
 import toast from "react-hot-toast";
@@ -21,6 +23,11 @@ export default function CreateBlogPage() {
   const [aiLength, setAiLength] = useState("medium");
   const [generating, setGenerating] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
+  const aiGenerateBlog = useAiGenerateBlog();
+  const classifyTags = useAiClassifyTags();
+
+  const wordCount = form.content.trim() ? form.content.trim().split(/\s+/).length : 0;
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -41,18 +48,50 @@ export default function CreateBlogPage() {
     }
   };
 
+  const autoClassifyTags = useCallback(async (title: string, content: string) => {
+    try {
+      const result = await classifyTags.mutateAsync({ title, description: content.slice(0, 2000) });
+      if (result.tags?.length) {
+        const existing = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+        const merged = [...new Set([...existing, ...result.tags])];
+        update("tags", merged.join(", "));
+      }
+    } catch {
+      // silent — tags are optional
+    }
+  }, [classifyTags, form.tags]);
+
   const handleAiGenerate = async () => {
     if (!aiTopic) { toast.error("Please enter a topic"); return; }
     setGenerating(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    const sampleContent = `## Introduction\n\n${aiTopic} is an important topic in modern healthcare. Understanding its implications can help patients make informed decisions about their health and wellbeing.\n\n## Key Points\n\n- Regular monitoring and early detection are crucial\n- Consultation with healthcare providers is recommended for personalized advice\n- Lifestyle modifications can significantly impact outcomes\n- Stay informed about the latest research and treatment options\n\n## When to Seek Help\n\nIf you experience persistent symptoms or have concerns about ${aiTopic.toLowerCase()}, please consult a healthcare professional. Early intervention often leads to better outcomes.\n\n## Conclusion\n\nStaying informed about ${aiTopic.toLowerCase()} empowers you to take control of your health journey. MediMind is here to support you with AI-powered insights and connections to trusted healthcare providers.`;
+    try {
+      const result = await aiGenerateBlog.mutateAsync({
+        topic: aiTopic,
+        audience: aiAudience,
+        tone: aiTone,
+        length: aiLength,
+      });
+      if (result.title) update("title", result.title);
+      if (result.content) update("content", result.content);
+      if (result.metaDescription) update("excerpt", result.metaDescription);
+      if (result.tags?.length) update("tags", result.tags.join(", "));
+      setHasGenerated(true);
+      toast.success("Blog content generated successfully!");
 
-    update("title", `Understanding ${aiTopic}: A Comprehensive Guide`);
-    update("excerpt", `Learn about ${aiTopic.toLowerCase()}, its symptoms, treatment options, and when to seek medical help. A comprehensive guide for patients and caregivers.`);
-    update("content", sampleContent);
-    update("tags", `${aiTopic}, Health, Wellness, Medical Guide`);
-    setGenerating(false);
-    toast.success("AI content generated");
+      if (result.title && result.content) {
+        autoClassifyTags(result.title, result.content);
+      }
+    } catch {
+      const sampleContent = `## Introduction\n\n${aiTopic} is an important topic in modern healthcare. Understanding its implications can help patients make informed decisions about their health and wellbeing.\n\n## Key Points\n\n- Regular monitoring and early detection are crucial\n- Consultation with healthcare providers is recommended for personalized advice\n- Lifestyle modifications can significantly impact outcomes\n- Stay informed about the latest research and treatment options\n\n## When to Seek Help\n\nIf you experience persistent symptoms or have concerns about ${aiTopic.toLowerCase()}, please consult a healthcare professional. Early intervention often leads to better outcomes.\n\n## Conclusion\n\nStaying informed about ${aiTopic.toLowerCase()} empowers you to take control of your health journey. MediMind is here to support you with AI-powered insights and connections to trusted healthcare providers.`;
+      update("title", `Understanding ${aiTopic}: A Comprehensive Guide`);
+      update("excerpt", `Learn about ${aiTopic.toLowerCase()}, its symptoms, treatment options, and when to seek medical help.`);
+      update("content", sampleContent);
+      update("tags", `${aiTopic}, Health, Wellness, Medical Guide`);
+      setHasGenerated(true);
+      toast.success("AI content generated (template)");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent, publishStatus: "Draft" | "Published") => {
@@ -133,11 +172,16 @@ export default function CreateBlogPage() {
               </select>
             </div>
           </div>
-          <button onClick={handleAiGenerate} disabled={generating || !aiTopic}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Sparkles className="w-4 h-4" /> Generate Content</>}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={handleAiGenerate} disabled={generating || !aiTopic}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Sparkles className="w-4 h-4" /> {hasGenerated ? "Regenerate" : "Generate Content"}</>}
+            </button>
+            {hasGenerated && !generating && (
+              <span className="text-xs text-slate-400 dark:text-slate-500">Click regenerate to create new content with the same settings</span>
+            )}
+          </div>
         </div>
       )}
 
@@ -158,7 +202,14 @@ export default function CreateBlogPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tags (comma-separated)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Tags (comma-separated)
+                {classifyTags.isPending && (
+                  <span className="ml-2 text-xs text-primary font-normal inline-flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> AI classifying tags...
+                  </span>
+                )}
+              </label>
               <input type="text" value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="e.g. Heart Health, Wellness, Prevention"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
@@ -167,7 +218,12 @@ export default function CreateBlogPage() {
         </div>
 
         <div className="card-standard p-6">
-          <h2 className="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-4">Content *</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading text-lg font-semibold text-slate-900 dark:text-white">Content *</h2>
+            {wordCount > 0 && (
+              <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">{wordCount.toLocaleString()} words</span>
+            )}
+          </div>
           <textarea value={form.content} onChange={(e) => update("content", e.target.value)} rows={16} placeholder="Write your article content here... Markdown supported."
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none font-mono"
           />
@@ -184,7 +240,7 @@ export default function CreateBlogPage() {
             </div>
             {form.coverImage && (
               <div className="relative w-32 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
-                <img src={form.coverImage} alt="" className="w-full h-full object-cover" />
+                <Image src={form.coverImage} alt="" fill className="object-cover" />
                 <button type="button" onClick={() => update("coverImage", "")}
                   className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center"
                 >

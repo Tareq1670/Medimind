@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { get } from "@/lib/api";
+import { get, extractArrayData } from "@/lib/api";
 import { testimonials } from "@/components/home/data";
 import type { LandingTestimonial } from "@/components/home/data";
 
@@ -38,22 +38,13 @@ function normalizeReview(raw: ReviewFromApi): LandingTestimonial {
   };
 }
 
-function extractData<T>(raw: unknown, fallback: T[]): T[] {
-  if (Array.isArray(raw)) return raw;
-  if (raw && typeof raw === "object" && "data" in raw) {
-    const maybe = (raw as Record<string, unknown>).data;
-    if (Array.isArray(maybe)) return maybe as T[];
-  }
-  return fallback;
-}
-
 export function useTestimonials() {
   return useQuery({
     queryKey: ["landing", "testimonials"],
     queryFn: async () => {
       try {
         const result = await get<unknown>("/reviews?limit=4&approved=true");
-        const raw = extractData<ReviewFromApi>(result, []);
+        const raw = extractArrayData<ReviewFromApi>(result, []);
         return raw.length ? raw.map(normalizeReview) : testimonials;
       } catch {
         return testimonials;

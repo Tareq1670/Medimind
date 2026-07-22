@@ -1,0 +1,23 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0EA5E9"/>
+      <stop offset="100%" style="stop-color:#10B981"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="900" cy="200" r="300" fill="#0EA5E9" opacity="0.08"/>
+  <circle cx="300" cy="450" r="250" fill="#10B981" opacity="0.06"/>
+  <rect x="540" y="295" width="28" height="40" rx="6" fill="#0EA5E9" transform="rotate(45 554 315)"/>
+  <rect x="540" y="295" width="28" height="40" rx="6" fill="#0EA5E9" transform="rotate(-45 554 315)"/>
+  <text x="600" y="260" font-family="Inter, system-ui, sans-serif" font-size="64" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="-1">MediMind</text>
+  <text x="600" y="320" font-family="Inter, system-ui, sans-serif" font-size="24" fill="#94A3B8" text-anchor="middle">AI-Powered Healthcare Platform</text>
+  <text x="600" y="380" font-family="Inter, system-ui, sans-serif" font-size="16" fill="#64748B" text-anchor="middle">Your Personal AI Health Companion</text>
+  <rect x="470" y="420" width="260" height="48" rx="24" fill="url(#accent)"/>
+  <text x="600" y="452" font-family="Inter, system-ui, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">Get Instant AI Health Insights</text>
+  <text x="600" y="560" font-family="Inter, system-ui, sans-serif" font-size="14" fill="#475569" text-anchor="middle">medimind.vercel.app</text>
+</svg>

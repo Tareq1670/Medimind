@@ -1,20 +1,37 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useBlogsList } from "@/hooks/useBlogsList";
-import { Pagination, EmptyState } from "@/components/shared";
+import { useURLFilters } from "@/hooks/useURLFilters";
+import { Pagination, EmptyState, ActiveFilters } from "@/components/shared";
 import { Search, BookOpen, User, Clock, ArrowRight, Tags } from "@/lib/icon-map";
 import { cn } from "@/lib/utils";
 import type { LandingBlog } from "@/types";
 
 const BLOGS_PER_PAGE = 9;
 
+const CATEGORY_TABS = [
+  { value: "", label: "All" },
+  { value: "Allergies", label: "Allergies" },
+  { value: "Gut Health", label: "Gut Health" },
+  { value: "Mental Health", label: "Mental Health" },
+  { value: "Heart", label: "Heart" },
+  { value: "Skin Care", label: "Skin Care" },
+  { value: "Diabetes", label: "Diabetes" },
+];
+
+const filterSchema = {
+  search: { debounce: 300 },
+  tag: {},
+} as const;
+
 function BlogCard({ blog }: { blog: LandingBlog }) {
   return (
-    <Link href={`/blogs/${blog.id}`} className="card-standard overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <Link href={`/blogs/${blog.slug}`} className="card-standard overflow-hidden group transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <div className="relative h-48 bg-gradient-to-br from-primary/5 to-secondary/5 overflow-hidden">
-        <img src={blog.coverImage} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        <Image src={blog.coverImage} alt={blog.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
       </div>
       <div className="flex flex-col flex-1 p-4">
         {blog.tags && blog.tags.length > 0 && (
@@ -40,9 +57,9 @@ function BlogCard({ blog }: { blog: LandingBlog }) {
 
 function FeaturedBlogCard({ blog }: { blog: LandingBlog }) {
   return (
-    <Link href={`/blogs/${blog.id}`} className="card-standard overflow-hidden group transition-all duration-300 hover:shadow-lg grid grid-cols-1 md:grid-cols-2">
+    <Link href={`/blogs/${blog.slug}`} className="card-standard overflow-hidden group transition-all duration-300 hover:shadow-lg grid grid-cols-1 md:grid-cols-2">
       <div className="relative h-56 md:h-full min-h-[200px] bg-gradient-to-br from-primary/10 to-secondary/10 overflow-hidden">
-        <img src={blog.coverImage} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        <Image src={blog.coverImage} alt={blog.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
       </div>
       <div className="p-6 md:p-8 flex flex-col justify-center">
         {blog.tags && blog.tags.length > 0 && (
@@ -76,22 +93,23 @@ function BlogCardSkeleton() {
   );
 }
 
-const CATEGORY_TABS = [
-  { value: "", label: "All" },
-  { value: "Allergies", label: "Allergies" },
-  { value: "Gut Health", label: "Gut Health" },
-  { value: "Mental Health", label: "Mental Health" },
-  { value: "Heart", label: "Heart" },
-  { value: "Skin Care", label: "Skin Care" },
-  { value: "Diabetes", label: "Diabetes" },
-];
-
 export default function BlogsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [tag, setTag] = useState("");
+  const { filters: f, page, set, setPage, resetAll, activeFilterCount } = useURLFilters(filterSchema);
+  const [searchInput, setSearchInput] = useState(f.search);
 
-  const filter = useMemo(() => ({
+  useEffect(() => { setSearchInput(f.search); }, [f.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== f.search) set("search", searchInput || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, f.search, set]);
+
+  const search = f.search;
+  const tag = f.tag;
+
+  const filter = {
     search: search || undefined,
     tag: tag || undefined,
     status: "Published" as const,
@@ -99,7 +117,7 @@ export default function BlogsPage() {
     sortOrder: "desc" as const,
     page,
     limit: BLOGS_PER_PAGE,
-  }), [search, tag, page]);
+  };
 
   const { data, isLoading, isError } = useBlogsList(filter);
   const blogs = data?.data || [];
@@ -121,7 +139,8 @@ export default function BlogsPage() {
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Search articles..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              <input type="text" placeholder="Search articles..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+                aria-label="Search articles"
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
             </div>
@@ -129,7 +148,7 @@ export default function BlogsPage() {
 
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
             {CATEGORY_TABS.map((tab) => (
-              <button key={tab.value} onClick={() => { setTag(tab.value); setPage(1); }}
+              <button key={tab.value} onClick={() => set("tag", tab.value || undefined)}
                 className={cn("px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors border",
                   tag === tab.value ? "bg-primary text-white border-primary" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
                 )}
@@ -138,6 +157,15 @@ export default function BlogsPage() {
               </button>
             ))}
           </div>
+
+          <ActiveFilters
+            totalCount={activeFilterCount}
+            onClearAll={() => { resetAll(); setSearchInput(""); }}
+            chips={[
+              ...(search ? [{ key: "search", label: "Search", value: search, onRemove: () => { set("search", undefined); setSearchInput(""); } }] : []),
+              ...(tag ? [{ key: "tag", label: "Tag", value: tag, onRemove: () => set("tag", undefined) }] : []),
+            ]}
+          />
 
           {isLoading ? (
             <div className="space-y-8">
@@ -153,7 +181,7 @@ export default function BlogsPage() {
             <EmptyState icon={<BookOpen className="w-12 h-12" />} title="Failed to load articles" description="Something went wrong. Please try again later." />
           ) : blogs.length === 0 ? (
             <EmptyState icon={<BookOpen className="w-12 h-12" />} title="No articles found" description="Try adjusting your search or filter."
-              action={<button onClick={() => { setTag(""); setSearch(""); setPage(1); }} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">Clear Filters</button>}
+              action={<button onClick={() => { resetAll(); setSearchInput(""); }} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">Clear Filters</button>}
             />
           ) : (
             <>
@@ -164,7 +192,15 @@ export default function BlogsPage() {
                 </div>
               )}
               {pagination && pagination.totalPages > 1 && (
-                <div className="mt-8"><Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} /></div>
+                <div className="mt-8">
+                  <Pagination
+                    page={page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.total}
+                    perPage={BLOGS_PER_PAGE}
+                    onPageChange={setPage}
+                  />
+                </div>
               )}
             </>
           )}
@@ -177,7 +213,7 @@ export default function BlogsPage() {
             </h3>
             <div className="flex flex-wrap gap-2">
               {["Allergies", "Gut Health", "Mental Health", "Heart", "Skin Care", "Diabetes", "Research", "AI Technology", "Treatment"].map((t) => (
-                <button key={t} onClick={() => { setTag(t); setPage(1); }}
+                <button key={t} onClick={() => set("tag", t === tag ? undefined : t)}
                   className={cn("px-3 py-1 text-xs font-medium rounded-full transition-colors border",
                     tag === t ? "bg-primary text-white border-primary" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
                   )}

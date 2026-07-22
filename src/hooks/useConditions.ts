@@ -1,24 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { get, post, patch, deleteRequest } from "@/lib/api";
+import { get, post, patch, deleteRequest, extractPaginatedData } from "@/lib/api";
 import toast from "react-hot-toast";
 import type { Condition, ConditionFilter, PaginatedResponse, ConditionFormData } from "@/types";
-
-function extractPaginatedData<T>(raw: unknown): {
-  data: T[];
-  pagination?: { page: number; totalPages: number; total: number };
-} {
-  if (raw && typeof raw === "object") {
-    const r = raw as Record<string, unknown>;
-    if (Array.isArray(r.data)) {
-      return {
-        data: r.data as T[],
-        pagination: r.pagination as { page: number; totalPages: number; total: number } | undefined,
-      };
-    }
-  }
-  if (Array.isArray(raw)) return { data: raw as T[] };
-  return { data: [] };
-}
 
 export function useConditions(filter: ConditionFilter = {}) {
   const params = new URLSearchParams();

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useDoctorsList } from "@/hooks/useDoctorsList";
-import { Pagination, StarRating, EmptyState } from "@/components/shared";
+import { useURLFilters } from "@/hooks/useURLFilters";
+import { Pagination, StarRating, EmptyState, ActiveFilters } from "@/components/shared";
 import { Search, Stethoscope, UserCheck } from "@/lib/icon-map";
 import { cn } from "@/lib/utils";
-import type { DoctorFilter } from "@/types";
+import type { DoctorFilter, Doctor } from "@/types";
 
 const SPECIALTIES = [
   { value: "", label: "All Specialties" },
@@ -33,7 +35,11 @@ const RATING_FILTERS = [
 
 const DOCTORS_PER_PAGE = 12;
 
-import type { Doctor } from "@/types";
+const filterSchema = {
+  search: { debounce: 300 },
+  specialty: {},
+  rating: {},
+} as const;
 
 function DoctorCard({ doctor }: { doctor: Doctor }) {
   return (
@@ -43,7 +49,7 @@ function DoctorCard({ doctor }: { doctor: Doctor }) {
     >
       <div className="relative h-48 bg-gradient-to-br from-accent/5 to-primary/5 flex items-center justify-center">
         {doctor.image ? (
-          <img src={doctor.image} alt={doctor.name} className="w-full h-full object-cover" />
+          <Image src={doctor.image} alt={doctor.name} fill className="object-cover" />
         ) : (
           <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-3xl font-bold text-primary">{doctor.name?.charAt(0)}</span>
@@ -95,20 +101,30 @@ function DoctorCardSkeleton() {
 }
 
 export default function DoctorsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [specialty, setSpecialty] = useState("");
-  const [rating, setRating] = useState("");
+  const { filters: f, page, set, setPage, resetAll, activeFilterCount } = useURLFilters(filterSchema);
+  const [searchInput, setSearchInput] = useState(f.search);
   const [showFilters, setShowFilters] = useState(false);
 
-  const filter: DoctorFilter = useMemo(() => ({
+  useEffect(() => { setSearchInput(f.search); }, [f.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== f.search) set("search", searchInput || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, f.search, set]);
+
+  const search = f.search;
+  const specialty = f.specialty;
+  const rating = f.rating;
+
+  const filter: DoctorFilter = {
     search: search || undefined,
     specialty: specialty || undefined,
     isVerified: true,
-    minRating: rating ? Number(rating) : undefined,
     page,
     limit: DOCTORS_PER_PAGE,
-  }), [search, specialty, rating, page]);
+  };
 
   const { data, isLoading, isError } = useDoctorsList(filter);
   const doctors = data?.data || [];
@@ -151,7 +167,8 @@ export default function DoctorsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input type="text" placeholder="Search doctors..."
-                value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
+                aria-label="Search doctors"
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
             </div>
@@ -161,7 +178,7 @@ export default function DoctorsPage() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Specialty</h3>
             <div className="space-y-1 max-h-64 overflow-y-auto">
               {SPECIALTIES.map((s) => (
-                <button key={s.value} onClick={() => { setSpecialty(s.value); setPage(1); }}
+                <button key={s.value} onClick={() => set("specialty", s.value || undefined)}
                   className={cn("w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                     specialty === s.value ? "bg-primary/10 text-primary font-medium" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
                   )}
@@ -176,7 +193,7 @@ export default function DoctorsPage() {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Rating</h3>
             <div className="space-y-1">
               {RATING_FILTERS.map((r) => (
-                <button key={r.value} onClick={() => { setRating(r.value); setPage(1); }}
+                <button key={r.value} onClick={() => set("rating", r.value || undefined)}
                   className={cn("w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                     rating === r.value ? "bg-primary/10 text-primary font-medium" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
                   )}
@@ -187,7 +204,7 @@ export default function DoctorsPage() {
             </div>
           </div>
 
-          <button onClick={() => { setSpecialty(""); setRating(""); setSearch(""); setPage(1); }}
+          <button onClick={resetAll}
             className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Clear Filters
@@ -197,7 +214,17 @@ export default function DoctorsPage() {
         {showFilters && <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setShowFilters(false)} />}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-6">
+          <ActiveFilters
+            totalCount={activeFilterCount}
+            onClearAll={resetAll}
+            chips={[
+              ...(search ? [{ key: "search", label: "Search", value: search, onRemove: () => { set("search", undefined); setSearchInput(""); } }] : []),
+              ...(specialty ? [{ key: "specialty", label: "Specialty", value: specialty, onRemove: () => set("specialty", undefined) }] : []),
+              ...(rating ? [{ key: "rating", label: "Rating", value: `${rating}+ stars`, onRemove: () => set("rating", undefined) }] : []),
+            ]}
+          />
+
+          <div className="flex items-center justify-between mb-6 mt-4">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {pagination ? `${pagination.total} doctors found` : ""}
             </p>
@@ -215,9 +242,7 @@ export default function DoctorsPage() {
               title="No doctors found"
               description="Try adjusting your filters or search terms."
               action={
-                <button onClick={() => { setSpecialty(""); setRating(""); setSearch(""); setPage(1); }}
-                  className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
+                <button onClick={resetAll} className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors">
                   Clear Filters
                 </button>
               }
@@ -228,7 +253,15 @@ export default function DoctorsPage() {
                 {doctors.map((doctor) => <DoctorCard key={doctor._id} doctor={doctor} />)}
               </div>
               {pagination && pagination.totalPages > 1 && (
-                <div className="mt-8"><Pagination page={page} totalPages={pagination.totalPages} onPageChange={setPage} /></div>
+                <div className="mt-8">
+                  <Pagination
+                    page={page}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.total}
+                    perPage={DOCTORS_PER_PAGE}
+                    onPageChange={setPage}
+                  />
+                </div>
               )}
             </>
           )}

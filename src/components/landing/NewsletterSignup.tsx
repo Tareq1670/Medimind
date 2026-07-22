@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Mail, SendHorizonal, Loader2, CheckCircle2 } from "@/lib/icon-map";
 
 const newsletterSchema = z.object({
-  email: z.email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email address"),
 });
 
 export function NewsletterSignup() {

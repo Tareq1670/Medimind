@@ -1,35 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { UserCheck, Bot, Stethoscope, FileText } from "@/lib/icon-map";
+import { HeartPulse, Bot, Stethoscope, FileText } from "@/lib/icon-map";
 
 const steps = [
   {
     number: 1,
-    title: "Secure Authentication",
+    title: "Describe Your Symptoms",
     description:
-      "Create your encrypted health profile with role-based access. Your data is protected with industry-standard security protocols.",
-    icon: UserCheck,
+      "Enter your symptoms using our intuitive tag-based selector or describe them in natural language. Our AI understands medical terminology and common language alike.",
+    icon: HeartPulse,
   },
   {
     number: 2,
-    title: "AI Symptom & Report Scan",
+    title: "AI Analyzes Your Data",
     description:
-      "Our multi-modal AI engine analyzes your symptoms, lab reports, and medical history to generate preliminary clinical insights.",
+      "Our multi-modal AI engine cross-references your symptoms with thousands of clinical datasets, medical literature, and patient outcomes to generate preliminary insights.",
     icon: Bot,
   },
   {
     number: 3,
-    title: "Clinical Verification",
+    title: "Get Personalized Recommendations",
     description:
-      "Insights are cross-referenced with our network of verified specialists who review and validate AI-generated recommendations.",
+      "Receive tailored treatment suggestions, medication recommendations, and lifestyle advice based on your unique health profile and medical history.",
     icon: Stethoscope,
   },
   {
     number: 4,
-    title: "Prescription & Care Plan",
+    title: "Connect with Doctors",
     description:
-      "Receive a personalized care plan with digital prescriptions, automated refill reminders, and ongoing health monitoring.",
+      "Book consultations with verified specialists who review your AI analysis and provide professional medical guidance for your specific condition.",
     icon: FileText,
   },
 ];

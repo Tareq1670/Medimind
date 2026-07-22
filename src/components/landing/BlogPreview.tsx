@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { CalendarDays, Clock, ArrowRight, BookText } from "@/lib/icon-map";
 import { useBlogs } from "@/hooks/useBlogs";
@@ -70,9 +71,13 @@ export function BlogPreview() {
               className="group rounded-[var(--radius-card)] border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-900/80 overflow-hidden transition-all duration-200"
             >
               <div className="relative h-48 overflow-hidden bg-gradient-to-br from-[var(--color-primary)]/5 to-[var(--color-secondary)]/5 dark:from-slate-800 dark:to-slate-900">
-                <div className="flex h-full items-center justify-center">
-                  <BookText className="h-14 w-14 text-[var(--color-primary)]/15 dark:text-[var(--color-secondary)]/15" />
-                </div>
+                {blog.coverImage ? (
+                  <Image src={blog.coverImage} alt={blog.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <BookText className="h-14 w-14 text-[var(--color-primary)]/15 dark:text-[var(--color-secondary)]/15" />
+                  </div>
+                )}
                 <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                   {blog.tags.slice(0, 2).map((tag) => (
                     <span

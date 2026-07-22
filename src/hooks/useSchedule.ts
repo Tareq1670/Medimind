@@ -14,8 +14,8 @@ export function useSchedule() {
   return useQuery({
     queryKey: ["schedule"],
     queryFn: async () => {
-      const result = await get<{ data: ScheduleSlot[] }>("/doctors/schedule");
-      return result.data ?? (Array.isArray(result) ? result : []);
+      const result = await get<ScheduleSlot[]>("/doctors/schedule");
+      return Array.isArray(result) ? result : [];
     },
   });
 }
